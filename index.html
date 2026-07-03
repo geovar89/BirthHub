@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Birth App</title>
+  <meta name="theme-color" content="#ff7aa2" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Birth App</p>
+        <h1>Ημερολόγιο εγκυμοσύνης & υγείας</h1>
+        <p class="subtitle">Όλες οι βασικές εφαρμογές σε ένα mobile-first hub.</p>
+      </div>
+      <div class="baby-badge">👶</div>
+    </header>
+
+    <main>
+      <section id="homeView" class="view active">
+        <div class="section-title">
+          <h2>Εφαρμογές</h2>
+          <span>2 διαθέσιμες</span>
+        </div>
+
+        <div class="cards-grid">
+          <a class="app-card pressure" href="https://geovar89.github.io/blood/">
+            <div class="icon">🫀</div>
+            <div>
+              <h3>Blood Pressure Tracker</h3>
+              <p>Καταγραφή μεγάλης/μικρής πίεσης και παλμών.</p>
+            </div>
+            <span class="arrow">↗</span>
+          </a>
+
+          <button class="app-card exams" id="openExams" type="button">
+            <div class="icon">📁</div>
+            <div>
+              <h3>Αποθετήριο εξετάσεων</h3>
+              <p>Προβολή εξετάσεων, σχολίων και επισυναπτόμενων από Excel.</p>
+            </div>
+            <span class="arrow">›</span>
+          </button>
+        </div>
+      </section>
+
+      <section id="examsView" class="view">
+        <div class="top-bar">
+          <button id="backHome" class="ghost-btn" type="button">‹ Πίσω</button>
+          <button id="refreshExams" class="ghost-btn" type="button">Ανανέωση</button>
+        </div>
+
+        <div class="section-title sticky-title">
+          <div>
+            <h2>Αποθετήριο εξετάσεων</h2>
+            <p>Δεδομένα από Excel</p>
+          </div>
+        </div>
+
+        <div class="upload-card" id="uploadCard">
+          <p><strong>Δεν έχει οριστεί Excel URL.</strong></p>
+          <p>Μπορείς προσωρινά να ανεβάσεις αρχείο .xlsx από τη συσκευή σου.</p>
+          <input id="fileInput" type="file" accept=".xlsx,.xls" />
+        </div>
+
+        <div class="filters">
+          <input id="searchInput" type="search" placeholder="Αναζήτηση σε γεγονός ή σχόλια..." />
+        </div>
+
+        <div id="status" class="status">Φόρτωση δεδομένων...</div>
+        <div id="timeline" class="timeline"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
