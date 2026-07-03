@@ -1,11 +1,14 @@
 const homeView = document.getElementById('homeView');
 const examsView = document.getElementById('examsView');
 const weightView = document.getElementById('weightView');
+const appointmentsView = document.getElementById('appointmentsView');
 
 const openExams = document.getElementById('openExams');
 const openWeight = document.getElementById('openWeight');
+const openAppointments = document.getElementById('openAppointments');
 const backHome = document.getElementById('backHome');
 const backHomeFromWeight = document.getElementById('backHomeFromWeight');
+const backHomeFromAppointments = document.getElementById('backHomeFromAppointments');
 
 const refreshExams = document.getElementById('refreshExams');
 const statusEl = document.getElementById('status');
@@ -22,6 +25,21 @@ const weightCount = document.getElementById('weightCount');
 const weightSummary = document.getElementById('weightSummary');
 const clearWeightEntries = document.getElementById('clearWeightEntries');
 const weightChartCanvas = document.getElementById('weightChart');
+
+const appointmentForm = document.getElementById('appointmentForm');
+const appointmentDate = document.getElementById('appointmentDate');
+const appointmentTime = document.getElementById('appointmentTime');
+const appointmentTitle = document.getElementById('appointmentTitle');
+const appointmentDoctor = document.getElementById('appointmentDoctor');
+const appointmentType = document.getElementById('appointmentType');
+const appointmentStatus = document.getElementById('appointmentStatus');
+const appointmentNotes = document.getElementById('appointmentNotes');
+const appointmentSearch = document.getElementById('appointmentSearch');
+const appointmentsList = document.getElementById('appointmentsList');
+const appointmentCount = document.getElementById('appointmentCount');
+const clearAppointments = document.getElementById('clearAppointments');
+const nextAppointmentTitle = document.getElementById('nextAppointmentTitle');
+const nextAppointmentMeta = document.getElementById('nextAppointmentMeta');
 const prevWeightPage = document.getElementById('prevWeightPage');
 const nextWeightPage = document.getElementById('nextWeightPage');
 const weightPageInfo = document.getElementById('weightPageInfo');
@@ -38,11 +56,13 @@ const nutritionProgressPercent = document.getElementById('nutritionProgressPerce
 
 let exams = [];
 let weightEntries = [];
+let appointments = [];
 let weightChart = null;
 let currentWeightPage = 1;
 let activeMealKey = 'breakfast';
 
 const WEIGHT_STORAGE_KEY = 'birthApp.weightEntries.v1';
+const APPOINTMENTS_STORAGE_KEY = 'birthApp.appointments.v1';
 const WEIGHT_PAGE_SIZE = 10;
 const NUTRITION_STORAGE_KEY = 'birthApp.nutritionChecklist.v1';
 const PREGNANCY_IMPORT_DATA = {
@@ -301,7 +321,7 @@ const PREGNANCY_IMPORT_DATA = {
 const WEIGHT_IMPORT_FLAG_KEY = 'birthApp.weightImportDone.v1';
 
 
-openExams.addEventListener('click', async () => {
+openExams?.addEventListener('click', async () => {
   showView('exams');
   if (!exams.length) await loadFromConfiguredExcel();
 });
@@ -318,15 +338,24 @@ openNutrition?.addEventListener('click', () => {
   renderNutritionApp();
 });
 
-backHome.addEventListener('click', () => showView('home'));
-backHomeFromWeight.addEventListener('click', () => showView('home'));
+backHome?.addEventListener('click', () => showView('home'));
+backHomeFromWeight?.addEventListener('click', () => showView('home'));
+openAppointments?.addEventListener('click', () => {
+  showView('appointments');
+  loadAppointments();
+  renderAppointments();
+});
+backHomeFromAppointments?.addEventListener('click', () => showView('home'));
 backHomeFromNutrition?.addEventListener('click', () => showView('home'));
-refreshExams.addEventListener('click', loadFromConfiguredExcel);
-searchInput.addEventListener('input', renderExams);
-fileInput.addEventListener('change', handleFileUpload);
+refreshExams?.addEventListener('click', loadFromConfiguredExcel);
+searchInput?.addEventListener('input', renderExams);
+fileInput?.addEventListener('change', handleFileUpload);
 
-weightForm.addEventListener('submit', handleWeightSubmit);
-clearWeightEntries.addEventListener('click', clearAllWeightEntries);
+weightForm?.addEventListener('submit', handleWeightSubmit);
+appointmentForm?.addEventListener('submit', handleAppointmentSubmit);
+appointmentSearch?.addEventListener('input', renderAppointments);
+clearAppointments?.addEventListener('click', clearAllAppointments);
+clearWeightEntries?.addEventListener('click', clearAllWeightEntries);
 prevWeightPage?.addEventListener('click', () => {
   if (currentWeightPage > 1) {
     currentWeightPage -= 1;
@@ -348,7 +377,8 @@ resetNutritionDay?.addEventListener('click', () => {
 function showView(view) {
   homeView.classList.toggle('active', view === 'home');
   examsView.classList.toggle('active', view === 'exams');
-  weightView.classList.toggle('active', view === 'weight');
+  weightView?.classList.toggle('active', view === 'weight');
+  appointmentsView?.classList.toggle('active', view === 'appointments');
   nutritionView?.classList.toggle('active', view === 'nutrition');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1187,6 +1217,173 @@ function renderFoodOption(option) {
     </article>
   `;
 }
+
+
+
+function handleAppointmentSubmit(event) {
+  event.preventDefault();
+
+  const date = appointmentDate.value;
+  const time = appointmentTime.value || '';
+  const title = appointmentTitle.value.trim();
+  if (!date || !title) return;
+
+  const entry = {
+    id: createId(),
+    date,
+    time,
+    title,
+    doctor: appointmentDoctor.value.trim(),
+    type: appointmentType.value,
+    status: appointmentStatus.value,
+    notes: appointmentNotes.value.trim(),
+    createdAt: new Date().toISOString()
+  };
+
+  appointments.push(entry);
+  saveAppointments();
+  renderAppointments();
+  appointmentForm.reset();
+  appointmentDate.focus();
+}
+
+function loadAppointments() {
+  try {
+    const saved = localStorage.getItem(APPOINTMENTS_STORAGE_KEY);
+    appointments = saved ? JSON.parse(saved) : [];
+  } catch {
+    appointments = [];
+  }
+}
+
+function saveAppointments() {
+  localStorage.setItem(APPOINTMENTS_STORAGE_KEY, JSON.stringify(appointments));
+}
+
+function clearAllAppointments() {
+  if (!appointments.length) return;
+  const confirmed = confirm('Θέλεις σίγουρα να διαγραφούν όλα τα ραντεβού από αυτή τη συσκευή;');
+  if (!confirmed) return;
+  appointments = [];
+  saveAppointments();
+  renderAppointments();
+}
+
+function deleteAppointment(id) {
+  appointments = appointments.filter(item => item.id !== id);
+  saveAppointments();
+  renderAppointments();
+}
+
+function toggleAppointmentStatus(id) {
+  appointments = appointments.map(item => {
+    if (item.id !== id) return item;
+    const nextStatus = item.status === 'Ολοκληρώθηκε' ? 'Προγραμματισμένο' : 'Ολοκληρώθηκε';
+    return { ...item, status: nextStatus };
+  });
+  saveAppointments();
+  renderAppointments();
+}
+
+function renderAppointments() {
+  const query = (appointmentSearch?.value || '').trim().toLowerCase();
+  const sorted = [...appointments].sort((a, b) => {
+    const aDate = new Date(`${a.date}T${a.time || '00:00'}`).getTime();
+    const bDate = new Date(`${b.date}T${b.time || '00:00'}`).getTime();
+    return aDate - bDate;
+  });
+
+  const filtered = sorted.filter(item =>
+    item.title.toLowerCase().includes(query) ||
+    (item.doctor || '').toLowerCase().includes(query) ||
+    (item.notes || '').toLowerCase().includes(query) ||
+    (item.type || '').toLowerCase().includes(query)
+  );
+
+  if (appointmentCount) {
+    appointmentCount.textContent = `${filtered.length} ${filtered.length === 1 ? 'εγγραφή' : 'εγγραφές'}`;
+  }
+
+  renderNextAppointment(sorted);
+
+  if (!appointmentsList) return;
+
+  if (!filtered.length) {
+    appointmentsList.innerHTML = `<div class="empty">Δεν υπάρχουν ραντεβού.</div>`;
+    return;
+  }
+
+  appointmentsList.innerHTML = filtered.map(renderAppointmentItem).join('');
+}
+
+function renderNextAppointment(items) {
+  const now = new Date();
+
+  const next = items.find(item => {
+    if (item.status !== 'Προγραμματισμένο') return false;
+    const dt = new Date(`${item.date}T${item.time || '23:59'}`);
+    return dt.getTime() >= now.getTime();
+  });
+
+  if (!next) {
+    if (nextAppointmentTitle) nextAppointmentTitle.textContent = 'Δεν υπάρχει επόμενο ραντεβού';
+    if (nextAppointmentMeta) nextAppointmentMeta.textContent = 'Πρόσθεσε ή κράτησε ως προγραμματισμένο το επόμενο ραντεβού.';
+    return;
+  }
+
+  if (nextAppointmentTitle) nextAppointmentTitle.textContent = next.title;
+  if (nextAppointmentMeta) {
+    nextAppointmentMeta.textContent =
+      `${formatAppointmentDate(next.date)}${next.time ? ' · ' + next.time : ''}` +
+      `${next.doctor ? ' · ' + next.doctor : ''}` +
+      ` · ${next.type}`;
+  }
+}
+
+function renderAppointmentItem(item) {
+  const statusClass =
+    item.status === 'Ολοκληρώθηκε'
+      ? 'status-done'
+      : item.status === 'Ακυρώθηκε'
+        ? 'status-cancelled'
+        : '';
+
+  return `
+    <article class="appointment-item">
+      <div class="appointment-top">
+        <div>
+          <div class="appointment-date">${escapeHtml(formatAppointmentDate(item.date))}${item.time ? ' · ' + escapeHtml(item.time) : ''}</div>
+          <h4>${escapeHtml(item.title)}</h4>
+          <div class="appointment-meta">
+            ${escapeHtml(item.type || 'Ραντεβού')}
+            ${item.doctor ? ' · ' + escapeHtml(item.doctor) : ''}
+          </div>
+        </div>
+        <span class="status-pill ${statusClass}">${escapeHtml(item.status || 'Προγραμματισμένο')}</span>
+      </div>
+      ${item.notes ? `<p class="appointment-notes">${escapeHtml(item.notes)}</p>` : ''}
+      <div class="item-actions">
+        <button class="small-btn" type="button" onclick="toggleAppointmentStatus('${escapeAttribute(item.id)}')">
+          ${item.status === 'Ολοκληρώθηκε' ? 'Άνοιγμα ξανά' : 'Ολοκληρώθηκε'}
+        </button>
+        <button class="small-btn danger" type="button" onclick="deleteAppointment('${escapeAttribute(item.id)}')">Διαγραφή</button>
+      </div>
+    </article>
+  `;
+}
+
+function formatAppointmentDate(value) {
+  const date = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return String(value || '');
+  return date.toLocaleDateString('el-GR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  });
+}
+
+window.deleteAppointment = deleteAppointment;
+window.toggleAppointmentStatus = toggleAppointmentStatus;
 
 function escapeHtml(value) {
   return String(value ?? '')
