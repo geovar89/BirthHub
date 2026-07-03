@@ -17,6 +17,15 @@ const searchInput = document.getElementById('searchInput');
 const uploadCard = document.getElementById('uploadCard');
 const fileInput = document.getElementById('fileInput');
 
+const dashboardPregnancyWeek = document.getElementById('dashboardPregnancyWeek');
+const dashboardDueDate = document.getElementById('dashboardDueDate');
+const dashboardLastWeight = document.getElementById('dashboardLastWeight');
+const dashboardWeightDiff = document.getElementById('dashboardWeightDiff');
+const dashboardNextAppointment = document.getElementById('dashboardNextAppointment');
+const dashboardNextAppointmentDate = document.getElementById('dashboardNextAppointmentDate');
+const dashboardNutritionProgress = document.getElementById('dashboardNutritionProgress');
+const dashboardExamCount = document.getElementById('dashboardExamCount');
+
 const weightForm = document.getElementById('weightForm');
 const weightInput = document.getElementById('weightInput');
 const weekInput = document.getElementById('weekInput');
@@ -331,6 +340,7 @@ openWeight.addEventListener('click', () => {
   loadWeightEntries();
   importPregnancyWeightsIfNeeded();
   renderWeightApp();
+  renderDashboardWeight();
 });
 
 openNutrition?.addEventListener('click', () => {
@@ -375,6 +385,7 @@ resetNutritionDay?.addEventListener('click', () => {
 });
 
 function showView(view) {
+  if (view === 'home') renderDashboard();
   homeView.classList.toggle('active', view === 'home');
   examsView.classList.toggle('active', view === 'exams');
   weightView?.classList.toggle('active', view === 'weight');
@@ -562,6 +573,7 @@ function setExamsFromRows(rows) {
     });
 
   renderExams();
+  renderDashboardExams();
 }
 
 function normalizeRow(row, index) {
@@ -1220,6 +1232,125 @@ function renderFoodOption(option) {
 
 
 
+
+
+function renderDashboard() {
+  renderDashboardPregnancyInfo();
+  renderDashboardWeight();
+  renderDashboardAppointments();
+  renderDashboardNutrition();
+  renderDashboardExams();
+}
+
+function renderDashboardPregnancyInfo() {
+  const today = new Date();
+  const pregnancy = calculatePregnancyInfo(today.toISOString().slice(0, 10));
+
+  if (dashboardPregnancyWeek) {
+    dashboardPregnancyWeek.textContent = pregnancy.label
+      ? `Εβδομάδα κύησης ${pregnancy.label}`
+      : 'Εβδομάδα κύησης';
+  }
+
+  if (dashboardDueDate) {
+    const lmp = new Date(`${PREGNANCY_IMPORT_DATA.lastMenstruationDate}T12:00:00`);
+    const due = new Date(lmp);
+    due.setDate(due.getDate() + 280);
+
+    dashboardDueDate.textContent =
+      `Πιθανή ημερομηνία τοκετού: ${formatDateShort(due.toISOString())}`;
+  }
+}
+
+function renderDashboardWeight() {
+  loadWeightEntries();
+  importPregnancyWeightsIfNeeded();
+
+  const sorted = getSortedWeightEntries();
+
+  if (!sorted.length) {
+    if (dashboardLastWeight) dashboardLastWeight.textContent = '—';
+    if (dashboardWeightDiff) dashboardWeightDiff.textContent = 'Δεν υπάρχουν μετρήσεις';
+    return;
+  }
+
+  const last = sorted[sorted.length - 1];
+  const diff = Number(last.weight) - Number(PREGNANCY_IMPORT_DATA.momWeightBeforePregnancy);
+  const sign = diff > 0 ? '+' : '';
+
+  if (dashboardLastWeight) dashboardLastWeight.textContent = `${formatNumber(last.weight)} kg`;
+  if (dashboardWeightDiff) dashboardWeightDiff.textContent = `${sign}${formatNumber(diff)} kg από αρχικό`;
+}
+
+function renderDashboardAppointments() {
+  loadAppointments();
+
+  const now = new Date();
+  const sorted = [...appointments].sort((a, b) => {
+    const aDate = new Date(`${a.date}T${a.time || '00:00'}`).getTime();
+    const bDate = new Date(`${b.date}T${b.time || '00:00'}`).getTime();
+    return aDate - bDate;
+  });
+
+  const next = sorted.find(item => {
+    if (item.status !== 'Προγραμματισμένο') return false;
+    const dt = new Date(`${item.date}T${item.time || '23:59'}`);
+    return dt.getTime() >= now.getTime();
+  });
+
+  if (!next) {
+    if (dashboardNextAppointment) dashboardNextAppointment.textContent = '—';
+    if (dashboardNextAppointmentDate) dashboardNextAppointmentDate.textContent = 'Δεν υπάρχει προγραμματισμένο';
+    return;
+  }
+
+  if (dashboardNextAppointment) dashboardNextAppointment.textContent = next.title;
+  if (dashboardNextAppointmentDate) {
+    dashboardNextAppointmentDate.textContent =
+      `${formatAppointmentDate(next.date)}${next.time ? ' · ' + next.time : ''}`;
+  }
+}
+
+function renderDashboardNutrition() {
+  try {
+    const nutritionKeys = Object.keys(localStorage).filter(key =>
+      key.toLowerCase().includes('nutrition') ||
+      key.toLowerCase().includes('meal')
+    );
+
+    let checked = 0;
+
+    nutritionKeys.forEach(key => {
+      const value = localStorage.getItem(key);
+      if (!value) return;
+      try {
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed)) checked += parsed.filter(Boolean).length;
+        else if (typeof parsed === 'object') checked += Object.values(parsed).filter(Boolean).length;
+      } catch {
+        if (value === 'true') checked += 1;
+      }
+    });
+
+    checked = Math.min(5, checked);
+
+    if (dashboardNutritionProgress) {
+      dashboardNutritionProgress.textContent = `${checked}/5`;
+    }
+  } catch {
+    if (dashboardNutritionProgress) dashboardNutritionProgress.textContent = '0/5';
+  }
+}
+
+function renderDashboardExams() {
+  if (dashboardExamCount) {
+    dashboardExamCount.textContent = exams?.length ? String(exams.length) : '—';
+  }
+}
+
+renderDashboard();
+
+
 function handleAppointmentSubmit(event) {
   event.preventDefault();
 
@@ -1243,6 +1374,7 @@ function handleAppointmentSubmit(event) {
   appointments.push(entry);
   saveAppointments();
   renderAppointments();
+  renderDashboardAppointments();
   appointmentForm.reset();
   appointmentDate.focus();
 }
