@@ -1,0 +1,3 @@
+window.BIRTH_APP_CONFIG = {
+  EXCEL_URL: "https://script.google.com/macros/s/AKfycbxwT3q6lRpsO5EFg3RVNPp2ujIasaT_P9jVRczPldXYU_hj5JTd1hUH-Oql72vwKkys/exec"
+};
