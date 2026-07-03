@@ -380,7 +380,6 @@ th {
   .form-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-
 .weight-chart-container{
   position:relative;
   height:260px;
@@ -390,8 +389,163 @@ th {
   .weight-chart-container{height:380px;}
 }
 .pagination{
- display:flex;justify-content:center;align-items:center;gap:12px;margin-top:16px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:12px;
+  margin-top:16px;
 }
 .pagination button{
- border:0;background:var(--primary);color:white;border-radius:12px;padding:8px 14px;
+  border:0;
+  background:var(--primary);
+  color:white;
+  border-radius:12px;
+  padding:8px 14px;
+  font-weight:800;
+}
+.pagination button:disabled{
+  opacity:.38;
+}
+.nutrition .icon { background:#dcfce7; }
+.nutrition-summary-card,
+.meal-header-card,
+.nutrition-note{
+  background:rgba(255,255,255,.9);
+  border:1px solid rgba(37,99,235,.08);
+  box-shadow:var(--shadow);
+  border-radius:24px;
+}
+.nutrition-summary-card{
+  padding:18px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:14px;
+}
+.nutrition-summary-card h3{
+  margin:4px 0 0;
+  font-size:22px;
+}
+.mini-label{
+  color:var(--muted);
+  font-weight:800;
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.progress-ring{
+  width:70px;
+  height:70px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  color:white;
+  background:linear-gradient(135deg,var(--primary),var(--blue));
+  font-weight:900;
+  box-shadow:0 14px 28px rgba(37,99,235,.18);
+}
+.meal-checklist{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
+  margin-bottom:14px;
+}
+.meal-check{
+  border:1px solid rgba(15,23,42,.08);
+  background:white;
+  border-radius:18px;
+  padding:12px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:var(--text);
+  box-shadow:0 8px 20px rgba(15,23,42,.06);
+}
+.meal-check strong{font-size:13px;flex:1;text-align:left;}
+.meal-check em{font-style:normal;color:var(--muted);font-weight:900;}
+.meal-check.done{
+  background:#eff6ff;
+  border-color:rgba(37,99,235,.25);
+}
+.meal-check.done em{color:var(--primary);}
+.nutrition-tabs{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  padding:2px 0 12px;
+  margin-bottom:2px;
+  scrollbar-width:none;
+}
+.nutrition-tabs::-webkit-scrollbar{display:none;}
+.nutrition-tab{
+  flex:0 0 auto;
+  border:1px solid rgba(37,99,235,.1);
+  background:white;
+  border-radius:999px;
+  padding:10px 13px;
+  font-weight:800;
+  color:var(--muted);
+  box-shadow:0 6px 16px rgba(15,23,42,.06);
+}
+.nutrition-tab.active{
+  color:white;
+  background:linear-gradient(135deg,var(--primary),var(--blue));
+}
+.meal-header-card{
+  padding:16px;
+  display:flex;
+  gap:14px;
+  align-items:flex-start;
+  margin-bottom:14px;
+}
+.meal-header-icon{
+  width:56px;
+  height:56px;
+  border-radius:18px;
+  display:grid;
+  place-items:center;
+  background:#eff6ff;
+  font-size:28px;
+  flex:0 0 auto;
+}
+.meal-header-card h3{margin:4px 0;font-size:22px;}
+.meal-header-card p{margin:6px 0 0;color:var(--muted);line-height:1.4;}
+.food-options{display:grid;gap:12px;}
+.food-card{
+  background:white;
+  border:1px solid rgba(15,23,42,.07);
+  border-radius:22px;
+  padding:16px;
+  box-shadow:var(--shadow);
+}
+.food-card-title{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:10px;
+}
+.food-card-title > span{
+  width:46px;
+  height:46px;
+  display:grid;
+  place-items:center;
+  border-radius:16px;
+  background:#f0fdf4;
+  font-size:25px;
+}
+.food-card h4{margin:0;font-size:17px;}
+.food-card em{display:inline-block;margin-top:4px;color:var(--primary-dark);font-style:normal;font-weight:800;font-size:12px;}
+.food-card ul{margin:0;padding-left:22px;color:var(--muted);line-height:1.5;}
+.food-card li{margin:4px 0;}
+.nutrition-note{
+  margin-top:14px;
+  padding:15px;
+  color:var(--muted);
+  line-height:1.45;
+}
+.nutrition-note strong{color:var(--text);}
+@media (min-width:760px){
+  .food-options{grid-template-columns:repeat(2,1fr);}
+  .meal-checklist{grid-template-columns:repeat(5,1fr);}
 }

@@ -25,7 +25,7 @@
       <section id="homeView" class="view active">
         <div class="section-title">
           <h2>Εφαρμογές</h2>
-          <span>3 διαθέσιμες</span>
+          <span>4 διαθέσιμες</span>
         </div>
 
         <div class="cards-grid">
@@ -52,6 +52,15 @@
             <div>
               <h3>Tracker βάρους εγκύου</h3>
               <p>Καταγραφή βάρους ανά εβδομάδα κύησης και line chart εξέλιξης.</p>
+            </div>
+            <span class="arrow">›</span>
+          </button>
+
+          <button class="app-card nutrition" id="openNutrition" type="button">
+            <div class="icon">🥗</div>
+            <div>
+              <h3>Διατροφή εγκυμοσύνης</h3>
+              <p>Οργανωμένο πλάνο γευμάτων, επιλογές και καθημερινό checklist.</p>
             </div>
             <span class="arrow">›</span>
           </button>
@@ -139,9 +148,45 @@
                   <th></th>
                 </tr>
               </thead>
-              <tbody id="weightTableBody"></tbody></table></div><div class="pagination"><button id="prevWeightPage">‹</button><span id="weightPageInfo"></span><button id="nextWeightPage">›</button></div>
+              <tbody id="weightTableBody"></tbody>
             </table>
           </div>
+          <div class="pagination">
+            <button id="prevWeightPage" type="button">‹</button>
+            <span id="weightPageInfo">1 / 1</span>
+            <button id="nextWeightPage" type="button">›</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="nutritionView" class="view">
+        <div class="top-bar">
+          <button id="backHomeFromNutrition" class="ghost-btn" type="button">‹ Πίσω</button>
+          <button id="resetNutritionDay" class="ghost-btn" type="button">Reset ημέρας</button>
+        </div>
+
+        <div class="section-title sticky-title">
+          <div>
+            <h2>Διατροφή εγκυμοσύνης</h2>
+            <p>Το διαιτολόγιο σε πιο καθαρή μορφή, ανά γεύμα και επιλογή.</p>
+          </div>
+        </div>
+
+        <div class="nutrition-summary-card">
+          <div>
+            <span class="mini-label">Σημερινή πρόοδος</span>
+            <h3 id="nutritionProgressText">0/5 γεύματα</h3>
+          </div>
+          <div class="progress-ring" id="nutritionProgressPercent">0%</div>
+        </div>
+
+        <div id="mealChecklist" class="meal-checklist"></div>
+
+        <div class="nutrition-tabs" id="nutritionTabs"></div>
+        <div id="nutritionContent" class="nutrition-content"></div>
+
+        <div class="nutrition-note">
+          <strong>Υπενθύμιση:</strong> Το σίδηρο αναφέρεται 2–3 ώρες μετά το γεύμα μαζί με 1 φρούτο ή 1/2 ποτήρι χυμό πορτοκάλι, μακριά από γαλακτοκομικά, καφέ και τσάι.
         </div>
       </section>
     </main>

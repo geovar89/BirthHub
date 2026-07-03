@@ -22,12 +22,29 @@ const weightCount = document.getElementById('weightCount');
 const weightSummary = document.getElementById('weightSummary');
 const clearWeightEntries = document.getElementById('clearWeightEntries');
 const weightChartCanvas = document.getElementById('weightChart');
+const prevWeightPage = document.getElementById('prevWeightPage');
+const nextWeightPage = document.getElementById('nextWeightPage');
+const weightPageInfo = document.getElementById('weightPageInfo');
+
+const nutritionView = document.getElementById('nutritionView');
+const openNutrition = document.getElementById('openNutrition');
+const backHomeFromNutrition = document.getElementById('backHomeFromNutrition');
+const resetNutritionDay = document.getElementById('resetNutritionDay');
+const mealChecklist = document.getElementById('mealChecklist');
+const nutritionTabs = document.getElementById('nutritionTabs');
+const nutritionContent = document.getElementById('nutritionContent');
+const nutritionProgressText = document.getElementById('nutritionProgressText');
+const nutritionProgressPercent = document.getElementById('nutritionProgressPercent');
 
 let exams = [];
 let weightEntries = [];
 let weightChart = null;
+let currentWeightPage = 1;
+let activeMealKey = 'breakfast';
 
 const WEIGHT_STORAGE_KEY = 'birthApp.weightEntries.v1';
+const WEIGHT_PAGE_SIZE = 10;
+const NUTRITION_STORAGE_KEY = 'birthApp.nutritionChecklist.v1';
 const PREGNANCY_IMPORT_DATA = {
   "lastMenstruationDate": "2026-01-12",
   "momWeightBeforePregnancy": 82.5,
@@ -282,13 +299,6 @@ const PREGNANCY_IMPORT_DATA = {
   ]
 };
 const WEIGHT_IMPORT_FLAG_KEY = 'birthApp.weightImportDone.v1';
-const PAGE_SIZE=10;let currentWeightPage=1;
-const prevWeightPage=document.getElementById('prevWeightPage');
-const nextWeightPage=document.getElementById('nextWeightPage');
-const weightPageInfo=document.getElementById('weightPageInfo');
-prevWeightPage?.addEventListener('click',()=>{if(currentWeightPage>1){currentWeightPage--;renderWeightApp();}});
-nextWeightPage?.addEventListener('click',()=>{const max=Math.ceil(weightEntries.length/PAGE_SIZE);if(currentWeightPage<max){currentWeightPage++;renderWeightApp();}});
-
 
 
 openExams.addEventListener('click', async () => {
@@ -303,19 +313,43 @@ openWeight.addEventListener('click', () => {
   renderWeightApp();
 });
 
+openNutrition?.addEventListener('click', () => {
+  showView('nutrition');
+  renderNutritionApp();
+});
+
 backHome.addEventListener('click', () => showView('home'));
 backHomeFromWeight.addEventListener('click', () => showView('home'));
+backHomeFromNutrition?.addEventListener('click', () => showView('home'));
 refreshExams.addEventListener('click', loadFromConfiguredExcel);
 searchInput.addEventListener('input', renderExams);
 fileInput.addEventListener('change', handleFileUpload);
 
 weightForm.addEventListener('submit', handleWeightSubmit);
 clearWeightEntries.addEventListener('click', clearAllWeightEntries);
+prevWeightPage?.addEventListener('click', () => {
+  if (currentWeightPage > 1) {
+    currentWeightPage -= 1;
+    renderWeightApp();
+  }
+});
+nextWeightPage?.addEventListener('click', () => {
+  const pages = Math.max(1, Math.ceil(weightEntries.length / WEIGHT_PAGE_SIZE));
+  if (currentWeightPage < pages) {
+    currentWeightPage += 1;
+    renderWeightApp();
+  }
+});
+resetNutritionDay?.addEventListener('click', () => {
+  localStorage.removeItem(NUTRITION_STORAGE_KEY);
+  renderNutritionApp();
+});
 
 function showView(view) {
   homeView.classList.toggle('active', view === 'home');
   examsView.classList.toggle('active', view === 'exams');
   weightView.classList.toggle('active', view === 'weight');
+  nutritionView?.classList.toggle('active', view === 'nutrition');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -749,6 +783,7 @@ function handleWeightSubmit(event) {
   };
 
   weightEntries.push(entry);
+  currentWeightPage = 1;
   saveWeightEntries();
   renderWeightApp();
 
@@ -799,6 +834,7 @@ function clearAllWeightEntries() {
   if (!confirmed) return;
 
   weightEntries = [];
+  currentWeightPage = 1;
   saveWeightEntries();
   localStorage.removeItem(WEIGHT_IMPORT_FLAG_KEY);
   renderWeightApp();
@@ -806,6 +842,7 @@ function clearAllWeightEntries() {
 
 function deleteWeightEntry(id) {
   weightEntries = weightEntries.filter(entry => entry.id !== id);
+  currentWeightPage = 1;
   saveWeightEntries();
   renderWeightApp();
 }
@@ -836,17 +873,23 @@ function renderWeightTable(entries) {
         <td colspan="4" class="empty-row">Δεν υπάρχουν ακόμα μετρήσεις.</td>
       </tr>
     `;
+    if (weightPageInfo) weightPageInfo.textContent = '0 / 0';
+    if (prevWeightPage) prevWeightPage.disabled = true;
+    if (nextWeightPage) nextWeightPage.disabled = true;
     return;
   }
 
-  const reversed=entries.slice().reverse();
- const maxPages=Math.max(1,Math.ceil(reversed.length/PAGE_SIZE));
- currentWeightPage=Math.min(currentWeightPage,maxPages);
- weightPageInfo&&(weightPageInfo.textContent=`${currentWeightPage} / ${maxPages}`);
- const pageItems=reversed.slice((currentWeightPage-1)*PAGE_SIZE,currentWeightPage*PAGE_SIZE);
- weightTableBody.innerHTML = pageItems
-    .slice()
-    .reverse()
+  const reversed = entries.slice().reverse();
+  const pages = Math.max(1, Math.ceil(reversed.length / WEIGHT_PAGE_SIZE));
+  currentWeightPage = Math.min(Math.max(1, currentWeightPage), pages);
+  const start = (currentWeightPage - 1) * WEIGHT_PAGE_SIZE;
+  const pageItems = reversed.slice(start, start + WEIGHT_PAGE_SIZE);
+
+  if (weightPageInfo) weightPageInfo.textContent = `${currentWeightPage} / ${pages}`;
+  if (prevWeightPage) prevWeightPage.disabled = currentWeightPage === 1;
+  if (nextWeightPage) nextWeightPage.disabled = currentWeightPage === pages;
+
+  weightTableBody.innerHTML = pageItems
     .map(entry => `
       <tr>
         <td>${formatDateShort(entry.date)}</td>
@@ -980,6 +1023,169 @@ function formatNumber(value) {
     minimumFractionDigits: 0,
     maximumFractionDigits: 1
   });
+}
+
+
+const NUTRITION_MEALS = [
+  {
+    key: 'breakfast',
+    title: 'Πρωινό',
+    icon: '🌅',
+    options: [
+      { title: 'Τοστ', emoji: '🥪', items: ['2 φέτες τυρί', '1 αυγό βραστό', 'ντομάτα'] },
+      { title: 'Ομελέτα', emoji: '🍳', items: ['1 αυγό και 3 ασπράδια', 'λαχανικά', '60γρ τυρί', '1 φέτα ψωμί ολικής άλεσης'] },
+      { title: 'Τυρόπιτα τοστιέρας', emoji: '🫓', items: ['Σύμφωνα με τη δοσμένη συνταγή'] },
+      { title: 'Porridge', emoji: '🥣', items: ['1 φλιτζάνι ρόφημα αμυγδάλου', '4 κ.σ. βρώμη', '1 κλειστή χούφτα ανάλατοι ξηροί καρποί', '2 κ.γλ. σταφίδες'] },
+      { title: 'Κρίτσινια με τυρί', emoji: '🧀', items: ['4 κρίτσινια', '90γρ τυρί', 'ντοματίνια'] }
+    ]
+  },
+  {
+    key: 'snack1',
+    title: 'Δεκατιανό',
+    icon: '🍎',
+    options: [
+      { title: 'Φρούτα + ξηροί καρποί', emoji: '🍏', items: ['2 φρούτα', '10 αμύγδαλα ανάλατα ή 3 καρύδια ή 10 κάσιους ή 10 φουντούκια ή 15 φυστίκια'] },
+      { title: 'Φρούτα + κρίτσινι', emoji: '🥖', items: ['2 φρούτα', '1 κρίτσινι', '1 κ.γλ. μέλι ή μαρμελάδα'] },
+      { title: 'Smoothie', emoji: '🥤', items: ['1/2 φλιτζάνι ρόφημα αμυγδάλου', '1 μικρή μπανάνα ή φράουλες'] },
+      { title: 'Φρούτα + τυρί', emoji: '🧀', items: ['2 φρούτα', '1 κρίτσινι', '1 μερίδα τυρί'] }
+    ],
+    note: 'Τις φράουλες να τις βάζεις για 30 λεπτά στη σόδα.'
+  },
+  {
+    key: 'lunch',
+    title: 'Μεσημεριανό',
+    icon: '🍽️',
+    options: [
+      { title: 'Κοτόπουλο', emoji: '🍗', tag: 'βασική επιλογή', items: ['200γρ μπούτι ή 1/2 στήθος χωρίς δέρμα', 'σαλάτα + 2 κ.σ. λάδι', '4 κομμάτια πατάτες'] },
+      { title: 'Μπιφτέκι', emoji: '🥩', tag: '2 φορές/εβδομάδα', items: ['200γρ μπιφτέκι', 'σαλάτα + 1 κ.σ. λάδι', '3/4 φλιτζάνι πλιγούρι ή 1 μικρή πατάτα βραστή/ψητή'] },
+      { title: 'Μακαρόνια', emoji: '🍝', items: ['2 φλιτζάνια μακαρόνια ολικής, μετρημένα αφού έχουν βράσει', '4 κ.σ. κιμά', '4 κ.σ. τυρί τριμμένο', 'σαλάτα + 2 κ.σ. λάδι'] },
+      { title: 'Λαδερό', emoji: '🥔', tag: '2 φορές/εβδομάδα', items: ['1 μερίδα λαδερό', 'χωρίς κρεμμύδι ή μπάμια', '4 κομμάτια πατάτες ή 1 φέτα ψωμί ολικής ή 2 φρυγανιές ολικής', '60γρ τυρί χαμηλό σε λιπαρά'] },
+      { title: 'Όσπρια', emoji: '🫘', items: ['1 βαθύ πιάτο φακές ή φασόλια ή ρεβίθια ή γίγαντες ή ρεβιθορυζομάκαρονα', '60γρ τυρί ή 2 σπιρτόκουτα φέτα', 'σαλάτα + 1 κ.σ. λάδι', '1 φέτα ψωμί ολικής άλεσης'] },
+      { title: 'Ψάρι', emoji: '🐟', items: ['1 μερίδα ψάρι ψητό ή βραστό', 'σαλάτα + 1 κ.σ. λάδι', '1 φέτα ψωμί ολικής ή 90γρ πατάτα βραστή'] }
+    ],
+    note: 'Ρύζι = basmati = πλιγούρι. Μπορείς να προσθέσεις οποιοδήποτε φαγητό επιθυμείς, με ποσότητες βάσει κορεσμού.'
+  },
+  {
+    key: 'snack2',
+    title: 'Απογευματινό',
+    icon: '☕',
+    options: [
+      { title: 'Γιαούρτι + φρούτα', emoji: '🥛', items: ['1 γιαούρτι 2%', '2 φρούτα ή smoothie'] },
+      { title: 'Ψωμί + τυρί', emoji: '🍞', items: ['1 φέτα ψωμί ολικής ή 2 κρίτσινια', '1 μερίδα τυρί', 'ντοματίνια', '1 φρούτο'] },
+      { title: 'Αυγό + τυρί', emoji: '🥚', items: ['1 αυγό βραστό', '1 μερίδα τυρί', '1 κρίτσινι'] },
+      { title: 'Παγωτό μπανάνα', emoji: '🍌', items: ['Σύμφωνα με τη δοσμένη συνταγή'] }
+    ]
+  },
+  {
+    key: 'dinner',
+    title: 'Βραδινό',
+    icon: '🌙',
+    options: [
+      { title: 'Σαλάτα + αυγό', emoji: '🥗', items: ['Σαλάτα + 2 κ.σ. λάδι', '1 αυγό βραστό', '60γρ τυρί', '2 παξιμαδάκια krispies'] },
+      { title: 'Σαλάτα + κοτόπουλο', emoji: '🍗', items: ['Σαλάτα + 2 κ.σ. λάδι', '100γρ μπιφτέκι ή κοτόπουλο', '1 παξιμαδάκι krispie'] },
+      { title: 'Πιάτο τυριών', emoji: '🧀', items: ['10 ελιές', '2–3 κριτσίνια', 'λαχανικά'] },
+      { title: 'Σαλάτα + avocado', emoji: '🥑', items: ['Σαλάτα + 2 κ.σ. λάδι', '1 avocado', '10 κάσιους ή 3 καρύδια ή 10 φουντούκια ή 10 αμύγδαλα', '90γρ τυρί', '2 κρίτσινια'] }
+    ],
+    note: 'Με το βραδινό να πάρεις το ασβέστιο.'
+  }
+];
+
+function renderNutritionApp() {
+  if (!nutritionTabs || !nutritionContent || !mealChecklist) return;
+  const checklist = getNutritionChecklist();
+  renderNutritionProgress(checklist);
+  renderMealChecklist(checklist);
+  renderNutritionTabs();
+  renderNutritionContent();
+}
+
+function getNutritionChecklist() {
+  try {
+    return JSON.parse(localStorage.getItem(NUTRITION_STORAGE_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveNutritionChecklist(checklist) {
+  localStorage.setItem(NUTRITION_STORAGE_KEY, JSON.stringify(checklist));
+}
+
+function renderNutritionProgress(checklist) {
+  const done = NUTRITION_MEALS.filter(meal => checklist[meal.key]).length;
+  const total = NUTRITION_MEALS.length;
+  const percent = Math.round((done / total) * 100);
+  if (nutritionProgressText) nutritionProgressText.textContent = `${done}/${total} γεύματα`;
+  if (nutritionProgressPercent) nutritionProgressPercent.textContent = `${percent}%`;
+}
+
+function renderMealChecklist(checklist) {
+  mealChecklist.innerHTML = NUTRITION_MEALS.map(meal => `
+    <button class="meal-check ${checklist[meal.key] ? 'done' : ''}" type="button" data-meal-check="${meal.key}">
+      <span>${meal.icon}</span>
+      <strong>${meal.title}</strong>
+      <em>${checklist[meal.key] ? '✓' : '○'}</em>
+    </button>
+  `).join('');
+
+  mealChecklist.querySelectorAll('[data-meal-check]').forEach(button => {
+    button.addEventListener('click', () => {
+      const next = getNutritionChecklist();
+      const key = button.dataset.mealCheck;
+      next[key] = !next[key];
+      saveNutritionChecklist(next);
+      renderNutritionApp();
+    });
+  });
+}
+
+function renderNutritionTabs() {
+  nutritionTabs.innerHTML = NUTRITION_MEALS.map(meal => `
+    <button class="nutrition-tab ${meal.key === activeMealKey ? 'active' : ''}" type="button" data-meal-tab="${meal.key}">
+      ${meal.icon} ${meal.title}
+    </button>
+  `).join('');
+
+  nutritionTabs.querySelectorAll('[data-meal-tab]').forEach(button => {
+    button.addEventListener('click', () => {
+      activeMealKey = button.dataset.mealTab;
+      renderNutritionApp();
+    });
+  });
+}
+
+function renderNutritionContent() {
+  const meal = NUTRITION_MEALS.find(item => item.key === activeMealKey) || NUTRITION_MEALS[0];
+  nutritionContent.innerHTML = `
+    <div class="meal-header-card">
+      <div class="meal-header-icon">${meal.icon}</div>
+      <div>
+        <span class="mini-label">Γεύμα</span>
+        <h3>${escapeHtml(meal.title)}</h3>
+        ${meal.note ? `<p>${escapeHtml(meal.note)}</p>` : ''}
+      </div>
+    </div>
+    <div class="food-options">
+      ${meal.options.map(option => renderFoodOption(option)).join('')}
+    </div>
+  `;
+}
+
+function renderFoodOption(option) {
+  return `
+    <article class="food-card">
+      <div class="food-card-title">
+        <span>${option.emoji || '🍽️'}</span>
+        <div>
+          <h4>${escapeHtml(option.title)}</h4>
+          ${option.tag ? `<em>${escapeHtml(option.tag)}</em>` : ''}
+        </div>
+      </div>
+      <ul>
+        ${option.items.map(item => `<li>${escapeHtml(item)}</li>`).join('')}
+      </ul>
+    </article>
+  `;
 }
 
 function escapeHtml(value) {
