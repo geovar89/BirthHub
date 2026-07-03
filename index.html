@@ -4,10 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Birth App</title>
-  <meta name="theme-color" content="#ff7aa2" />
+  <meta name="theme-color" content="#2563eb" />
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -17,14 +18,14 @@
         <h1>Ημερολόγιο εγκυμοσύνης & υγείας</h1>
         <p class="subtitle">Όλες οι βασικές εφαρμογές σε ένα mobile-first hub.</p>
       </div>
-      <div class="baby-badge">👶</div>
+      <div class="baby-badge">🩵</div>
     </header>
 
     <main>
       <section id="homeView" class="view active">
         <div class="section-title">
           <h2>Εφαρμογές</h2>
-          <span>2 διαθέσιμες</span>
+          <span>3 διαθέσιμες</span>
         </div>
 
         <div class="cards-grid">
@@ -45,6 +46,15 @@
             </div>
             <span class="arrow">›</span>
           </button>
+
+          <button class="app-card weight" id="openWeight" type="button">
+            <div class="icon">⚖️</div>
+            <div>
+              <h3>Tracker βάρους εγκύου</h3>
+              <p>Καταγραφή βάρους ανά εβδομάδα κύησης και line chart εξέλιξης.</p>
+            </div>
+            <span class="arrow">›</span>
+          </button>
         </div>
       </section>
 
@@ -57,7 +67,7 @@
         <div class="section-title sticky-title">
           <div>
             <h2>Αποθετήριο εξετάσεων</h2>
-            <p>Δεδομένα από Excel</p>
+            <p>Δεδομένα από Excel / Google Apps Script</p>
           </div>
         </div>
 
@@ -73,6 +83,66 @@
 
         <div id="status" class="status">Φόρτωση δεδομένων...</div>
         <div id="timeline" class="timeline"></div>
+      </section>
+
+      <section id="weightView" class="view">
+        <div class="top-bar">
+          <button id="backHomeFromWeight" class="ghost-btn" type="button">‹ Πίσω</button>
+          <button id="clearWeightEntries" class="ghost-btn danger-text" type="button">Καθαρισμός</button>
+        </div>
+
+        <div class="section-title sticky-title">
+          <div>
+            <h2>Tracker βάρους εγκύου</h2>
+            <p>Έχουν γίνει import οι υπάρχουσες μετρήσεις από το pregnancy_data.apt. Προσωρινή αποθήκευση στη συσκευή.</p>
+          </div>
+        </div>
+
+        <form id="weightForm" class="form-card">
+          <div class="form-grid">
+            <label>
+              <span>Βάρος</span>
+              <input id="weightInput" type="number" inputmode="decimal" step="0.1" min="30" max="180" placeholder="π.χ. 68.4" required />
+            </label>
+
+            <label>
+              <span>Εβδομάδα κύησης</span>
+              <input id="weekInput" type="number" inputmode="numeric" min="1" max="42" placeholder="π.χ. 26" required />
+            </label>
+          </div>
+
+          <button class="primary-btn" type="submit">Προσθήκη μέτρησης</button>
+        </form>
+
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <h3>Εξέλιξη βάρους</h3>
+              <p id="weightSummary">Δεν υπάρχουν ακόμα μετρήσεις.</p>
+            </div>
+          </div>
+          <canvas id="weightChart" height="220"></canvas>
+        </div>
+
+        <div class="table-card">
+          <div class="table-title">
+            <h3>Μετρήσεις</h3>
+            <span id="weightCount">0 εγγραφές</span>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ημερομηνία</th>
+                  <th>Εβδ.</th>
+                  <th>Βάρος</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="weightTableBody"></tbody>
+            </table>
+          </div>
+        </div>
       </section>
     </main>
   </div>

@@ -1,7 +1,12 @@
 const homeView = document.getElementById('homeView');
 const examsView = document.getElementById('examsView');
+const weightView = document.getElementById('weightView');
+
 const openExams = document.getElementById('openExams');
+const openWeight = document.getElementById('openWeight');
 const backHome = document.getElementById('backHome');
+const backHomeFromWeight = document.getElementById('backHomeFromWeight');
+
 const refreshExams = document.getElementById('refreshExams');
 const statusEl = document.getElementById('status');
 const timeline = document.getElementById('timeline');
@@ -9,21 +14,301 @@ const searchInput = document.getElementById('searchInput');
 const uploadCard = document.getElementById('uploadCard');
 const fileInput = document.getElementById('fileInput');
 
+const weightForm = document.getElementById('weightForm');
+const weightInput = document.getElementById('weightInput');
+const weekInput = document.getElementById('weekInput');
+const weightTableBody = document.getElementById('weightTableBody');
+const weightCount = document.getElementById('weightCount');
+const weightSummary = document.getElementById('weightSummary');
+const clearWeightEntries = document.getElementById('clearWeightEntries');
+const weightChartCanvas = document.getElementById('weightChart');
+
 let exams = [];
+let weightEntries = [];
+let weightChart = null;
+
+const WEIGHT_STORAGE_KEY = 'birthApp.weightEntries.v1';
+const PREGNANCY_IMPORT_DATA = {
+  "lastMenstruationDate": "2026-01-12",
+  "momWeightBeforePregnancy": 82.5,
+  "momHeight": 1.5699999,
+  "weights": [
+    {
+      "date": "2026-07-01",
+      "weight": 89.8
+    },
+    {
+      "date": "2026-06-27",
+      "weight": 89.2
+    },
+    {
+      "date": "2026-06-18",
+      "weight": 88.3
+    },
+    {
+      "date": "2026-06-17",
+      "weight": 87.8
+    },
+    {
+      "date": "2026-06-16",
+      "weight": 87.5
+    },
+    {
+      "date": "2026-06-15",
+      "weight": 87.8
+    },
+    {
+      "date": "2026-06-13",
+      "weight": 87.3
+    },
+    {
+      "date": "2026-06-12",
+      "weight": 87.8
+    },
+    {
+      "date": "2026-06-11",
+      "weight": 87.0
+    },
+    {
+      "date": "2026-06-10",
+      "weight": 87.2
+    },
+    {
+      "date": "2026-06-08",
+      "weight": 87.2
+    },
+    {
+      "date": "2026-06-07",
+      "weight": 86.5
+    },
+    {
+      "date": "2026-06-05",
+      "weight": 86.4
+    },
+    {
+      "date": "2026-06-03",
+      "weight": 86.0
+    },
+    {
+      "date": "2026-06-01",
+      "weight": 85.5
+    },
+    {
+      "date": "2026-05-31",
+      "weight": 85.1
+    },
+    {
+      "date": "2026-05-30",
+      "weight": 85.7
+    },
+    {
+      "date": "2026-05-29",
+      "weight": 85.7
+    },
+    {
+      "date": "2026-05-28",
+      "weight": 85.5
+    },
+    {
+      "date": "2026-05-26",
+      "weight": 85.8
+    },
+    {
+      "date": "2026-05-25",
+      "weight": 85.7
+    },
+    {
+      "date": "2026-05-24",
+      "weight": 85.3
+    },
+    {
+      "date": "2026-05-23",
+      "weight": 84.8
+    },
+    {
+      "date": "2026-05-22",
+      "weight": 84.8
+    },
+    {
+      "date": "2026-05-21",
+      "weight": 85.3
+    },
+    {
+      "date": "2026-05-17",
+      "weight": 84.8
+    },
+    {
+      "date": "2026-05-16",
+      "weight": 84.0
+    },
+    {
+      "date": "2026-05-13",
+      "weight": 83.9
+    },
+    {
+      "date": "2026-05-12",
+      "weight": 84.2
+    },
+    {
+      "date": "2026-05-08",
+      "weight": 83.4
+    },
+    {
+      "date": "2026-05-07",
+      "weight": 83.7
+    },
+    {
+      "date": "2026-05-05",
+      "weight": 83.5
+    },
+    {
+      "date": "2026-05-04",
+      "weight": 83.4
+    },
+    {
+      "date": "2026-05-03",
+      "weight": 83.3
+    },
+    {
+      "date": "2026-05-01",
+      "weight": 82.9
+    },
+    {
+      "date": "2026-04-28",
+      "weight": 83.7
+    },
+    {
+      "date": "2026-04-27",
+      "weight": 83.3
+    },
+    {
+      "date": "2026-04-26",
+      "weight": 82.9
+    },
+    {
+      "date": "2026-04-25",
+      "weight": 83.1
+    },
+    {
+      "date": "2026-04-24",
+      "weight": 83.6
+    },
+    {
+      "date": "2026-04-23",
+      "weight": 82.4
+    },
+    {
+      "date": "2026-04-21",
+      "weight": 82.7
+    },
+    {
+      "date": "2026-04-20",
+      "weight": 83.4
+    },
+    {
+      "date": "2026-04-19",
+      "weight": 83.6
+    },
+    {
+      "date": "2026-04-18",
+      "weight": 82.8
+    },
+    {
+      "date": "2026-04-17",
+      "weight": 82.9
+    },
+    {
+      "date": "2026-04-16",
+      "weight": 83.3
+    },
+    {
+      "date": "2026-04-15",
+      "weight": 82.8
+    },
+    {
+      "date": "2026-04-05",
+      "weight": 81.7
+    },
+    {
+      "date": "2026-03-28",
+      "weight": 81.8
+    },
+    {
+      "date": "2026-03-22",
+      "weight": 81.0
+    },
+    {
+      "date": "2026-03-21",
+      "weight": 81.8
+    },
+    {
+      "date": "2026-03-19",
+      "weight": 81.7
+    },
+    {
+      "date": "2026-03-15",
+      "weight": 81.2
+    },
+    {
+      "date": "2026-03-14",
+      "weight": 81.3
+    },
+    {
+      "date": "2026-03-11",
+      "weight": 82.1
+    },
+    {
+      "date": "2026-03-10",
+      "weight": 82.1
+    },
+    {
+      "date": "2026-03-09",
+      "weight": 81.8
+    },
+    {
+      "date": "2026-03-08",
+      "weight": 82.3
+    },
+    {
+      "date": "2026-02-23",
+      "weight": 82.6
+    }
+  ],
+  "notes": [
+    {
+      "date": "2026-05-12",
+      "text": "Εξέταση d dimers"
+    }
+  ]
+};
+const WEIGHT_IMPORT_FLAG_KEY = 'birthApp.weightImportDone.v1';
+
 
 openExams.addEventListener('click', async () => {
   showView('exams');
   if (!exams.length) await loadFromConfiguredExcel();
 });
 
+openWeight.addEventListener('click', () => {
+  showView('weight');
+  loadWeightEntries();
+  importPregnancyWeightsIfNeeded();
+  renderWeightApp();
+});
+
 backHome.addEventListener('click', () => showView('home'));
+backHomeFromWeight.addEventListener('click', () => showView('home'));
 refreshExams.addEventListener('click', loadFromConfiguredExcel);
 searchInput.addEventListener('input', renderExams);
 fileInput.addEventListener('change', handleFileUpload);
 
+weightForm.addEventListener('submit', handleWeightSubmit);
+clearWeightEntries.addEventListener('click', clearAllWeightEntries);
+
 function showView(view) {
   homeView.classList.toggle('active', view === 'home');
   examsView.classList.toggle('active', view === 'exams');
+  weightView.classList.toggle('active', view === 'weight');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -433,6 +718,256 @@ function renderAttachment(url, index) {
       ${icon} ${label}
     </a>
   `;
+}
+
+
+function handleWeightSubmit(event) {
+  event.preventDefault();
+
+  const weight = Number(String(weightInput.value).replace(',', '.'));
+  const pregnancyWeek = Number(weekInput.value);
+
+  if (!weight || !pregnancyWeek) return;
+
+  const now = new Date();
+  const calculated = calculatePregnancyInfo(now.toISOString().slice(0, 10));
+
+  const entry = {
+    id: createId(),
+    date: now.toISOString(),
+    pregnancyWeek,
+    pregnancyDays: calculated.days,
+    pregnancyLabel: `${pregnancyWeek}+${calculated.days}`,
+    weight
+  };
+
+  weightEntries.push(entry);
+  saveWeightEntries();
+  renderWeightApp();
+
+  weightInput.value = '';
+  weekInput.value = '';
+  weightInput.focus();
+}
+
+function loadWeightEntries() {
+  try {
+    const saved = localStorage.getItem(WEIGHT_STORAGE_KEY);
+    weightEntries = saved ? JSON.parse(saved) : [];
+  } catch {
+    weightEntries = [];
+  }
+}
+
+function saveWeightEntries() {
+  localStorage.setItem(WEIGHT_STORAGE_KEY, JSON.stringify(weightEntries));
+}
+
+function importPregnancyWeightsIfNeeded() {
+  const alreadyImported = localStorage.getItem(WEIGHT_IMPORT_FLAG_KEY) === 'true';
+  if (alreadyImported || weightEntries.length) return;
+
+  weightEntries = PREGNANCY_IMPORT_DATA.weights.map(item => {
+    const pregnancy = calculatePregnancyInfo(item.date);
+
+    return {
+      id: `import-${item.date}-${String(item.weight).replace('.', '-')}`,
+      date: new Date(`${item.date}T12:00:00`).toISOString(),
+      pregnancyWeek: pregnancy.week,
+      pregnancyDays: pregnancy.days,
+      pregnancyLabel: pregnancy.label,
+      weight: Number(item.weight),
+      imported: true
+    };
+  });
+
+  saveWeightEntries();
+  localStorage.setItem(WEIGHT_IMPORT_FLAG_KEY, 'true');
+}
+
+function clearAllWeightEntries() {
+  if (!weightEntries.length) return;
+
+  const confirmed = confirm('Θέλεις σίγουρα να διαγραφούν όλες οι μετρήσεις βάρους από αυτή τη συσκευή;');
+  if (!confirmed) return;
+
+  weightEntries = [];
+  saveWeightEntries();
+  localStorage.removeItem(WEIGHT_IMPORT_FLAG_KEY);
+  renderWeightApp();
+}
+
+function deleteWeightEntry(id) {
+  weightEntries = weightEntries.filter(entry => entry.id !== id);
+  saveWeightEntries();
+  renderWeightApp();
+}
+
+function renderWeightApp() {
+  const sorted = getSortedWeightEntries();
+  renderWeightTable(sorted);
+  renderWeightSummary(sorted);
+  renderWeightChart(sorted);
+
+  if (!weightInput.value) {
+    weightInput.placeholder = sorted.length
+      ? `Τελευταίο: ${formatNumber(sorted[sorted.length - 1].weight)} kg`
+      : `Αρχικό: ${formatNumber(PREGNANCY_IMPORT_DATA.momWeightBeforePregnancy)} kg`;
+  }
+}
+
+function getSortedWeightEntries() {
+  return [...weightEntries].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+}
+
+function renderWeightTable(entries) {
+  weightCount.textContent = `${entries.length} ${entries.length === 1 ? 'εγγραφή' : 'εγγραφές'}`;
+
+  if (!entries.length) {
+    weightTableBody.innerHTML = `
+      <tr>
+        <td colspan="4" class="empty-row">Δεν υπάρχουν ακόμα μετρήσεις.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  weightTableBody.innerHTML = entries
+    .slice()
+    .reverse()
+    .map(entry => `
+      <tr>
+        <td>${formatDateShort(entry.date)}</td>
+        <td>${escapeHtml(getPregnancyLabel(entry))}</td>
+        <td><strong>${formatNumber(entry.weight)} kg</strong></td>
+        <td>
+          <button class="delete-row" type="button" onclick="deleteWeightEntry('${escapeAttribute(entry.id)}')">×</button>
+        </td>
+      </tr>
+    `)
+    .join('');
+}
+
+function renderWeightSummary(entries) {
+  if (!entries.length) {
+    weightSummary.textContent = 'Δεν υπάρχουν ακόμα μετρήσεις.';
+    return;
+  }
+
+  const first = entries[0];
+  const last = entries[entries.length - 1];
+  const diffFromFirst = Number(last.weight) - Number(first.weight);
+  const diffFromInitial = Number(last.weight) - Number(PREGNANCY_IMPORT_DATA.momWeightBeforePregnancy);
+  const signFirst = diffFromFirst > 0 ? '+' : '';
+  const signInitial = diffFromInitial > 0 ? '+' : '';
+
+  weightSummary.textContent =
+    `Τελευταία μέτρηση: ${formatNumber(last.weight)} kg στην εβδ. ${getPregnancyLabel(last)}. ` +
+    `Μεταβολή από την πρώτη μέτρηση: ${signFirst}${formatNumber(diffFromFirst)} kg. ` +
+    `Από αρχικό βάρος ${formatNumber(PREGNANCY_IMPORT_DATA.momWeightBeforePregnancy)} kg: ${signInitial}${formatNumber(diffFromInitial)} kg.`;
+}
+
+function renderWeightChart(entries) {
+  if (!weightChartCanvas || !window.Chart) return;
+
+  const labels = entries.map(entry => `${formatDateShort(entry.date)} · ${getPregnancyLabel(entry)}`);
+  const data = entries.map(entry => Number(entry.weight));
+
+  if (weightChart) {
+    weightChart.destroy();
+  }
+
+  weightChart = new Chart(weightChartCanvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Βάρος (kg)',
+        data,
+        tension: 0.32,
+        fill: false,
+        pointRadius: entries.length > 35 ? 2 : 4,
+        pointHoverRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: context => `${formatNumber(context.parsed.y)} kg`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            maxTicksLimit: 7
+          }
+        },
+        y: {
+          ticks: {
+            callback: value => `${value} kg`
+          }
+        }
+      }
+    }
+  });
+}
+
+function calculatePregnancyInfo(dateValue) {
+  const lmp = new Date(`${PREGNANCY_IMPORT_DATA.lastMenstruationDate}T12:00:00`);
+  const date = new Date(`${String(dateValue).slice(0, 10)}T12:00:00`);
+
+  if (Number.isNaN(lmp.getTime()) || Number.isNaN(date.getTime())) {
+    return { week: '', days: '', label: '' };
+  }
+
+  const diffDays = Math.max(0, Math.floor((date - lmp) / 86400000));
+  const week = Math.floor(diffDays / 7);
+  const days = diffDays % 7;
+
+  return {
+    week,
+    days,
+    label: `${week}+${days}`
+  };
+}
+
+function getPregnancyLabel(entry) {
+  if (entry.pregnancyLabel) return entry.pregnancyLabel;
+  if (entry.pregnancyWeek && entry.pregnancyDays !== undefined) return `${entry.pregnancyWeek}+${entry.pregnancyDays}`;
+  if (entry.pregnancyWeek) return String(entry.pregnancyWeek);
+  return '';
+}
+
+function createId() {
+  return crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+}
+
+function formatDateShort(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value || '');
+
+  return date.toLocaleDateString('el-GR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+}
+
+function formatNumber(value) {
+  return Number(value).toLocaleString('el-GR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1
+  });
 }
 
 function escapeHtml(value) {
