@@ -1,0 +1,9 @@
+{
+  "name": "Birth App",
+  "short_name": "Birth",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fff7f8",
+  "theme_color": "#ff7aa2",
+  "icons": []
+}
