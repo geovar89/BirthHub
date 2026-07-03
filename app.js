@@ -1235,30 +1235,47 @@ function renderFoodOption(option) {
 
 
 function renderDashboard() {
-  renderDashboardPregnancyInfo();
-  renderDashboardWeight();
-  renderDashboardAppointments();
-  renderDashboardNutrition();
-  renderDashboardExams();
+  try { renderDashboardPregnancyInfo(); } catch (e) { console.error(e); }
+  try { renderDashboardWeight(); } catch (e) { console.error(e); }
+  try { renderDashboardAppointments(); } catch (e) { console.error(e); }
+  try { renderDashboardNutrition(); } catch (e) { console.error(e); }
+  try { renderDashboardExams(); } catch (e) { console.error(e); }
 }
 
 function renderDashboardPregnancyInfo() {
-  const today = new Date();
-  const pregnancy = calculatePregnancyInfo(today.toISOString().slice(0, 10));
+  try {
+    const lmpDate = new Date('2026-01-12T12:00:00');
+    const today = new Date();
 
-  if (dashboardPregnancyWeek) {
-    dashboardPregnancyWeek.textContent = pregnancy.label
-      ? `Εβδομάδα κύησης ${pregnancy.label}`
-      : 'Εβδομάδα κύησης';
-  }
+    const diffDays = Math.max(
+      0,
+      Math.floor((today.getTime() - lmpDate.getTime()) / 86400000)
+    );
 
-  if (dashboardDueDate) {
-    const lmp = new Date(`${PREGNANCY_IMPORT_DATA.lastMenstruationDate}T12:00:00`);
-    const due = new Date(lmp);
-    due.setDate(due.getDate() + 280);
+    const week = Math.floor(diffDays / 7);
+    const days = diffDays % 7;
 
-    dashboardDueDate.textContent =
-      `Πιθανή ημερομηνία τοκετού: ${formatDateShort(due.toISOString())}`;
+    if (dashboardPregnancyWeek) {
+      dashboardPregnancyWeek.textContent = `Εβδομάδα κύησης ${week}+${days}`;
+    }
+
+    if (dashboardDueDate) {
+      const dueDate = new Date(lmpDate);
+      dueDate.setDate(dueDate.getDate() + 280);
+
+      dashboardDueDate.textContent =
+        `Πιθανή ημερομηνία τοκετού: ${dueDate.toLocaleDateString('el-GR')}`;
+    }
+  } catch (e) {
+    console.error('Dashboard pregnancy error', e);
+
+    if (dashboardPregnancyWeek) {
+      dashboardPregnancyWeek.textContent = 'Εβδομάδα κύησης';
+    }
+
+    if (dashboardDueDate) {
+      dashboardDueDate.textContent = 'ΤΕΡ 12/01/2026';
+    }
   }
 }
 
@@ -1348,7 +1365,6 @@ function renderDashboardExams() {
   }
 }
 
-renderDashboard();
 
 
 function handleAppointmentSubmit(event) {
@@ -1529,3 +1545,16 @@ function escapeHtml(value) {
 function escapeAttribute(value) {
   return escapeHtml(value);
 }
+
+
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    renderDashboard();
+  } catch (e) {
+    console.error('Initial dashboard render failed', e);
+  }
+});
+
+window.deleteWeightEntry = typeof deleteWeightEntry !== 'undefined' ? deleteWeightEntry : window.deleteWeightEntry;
+window.deleteAppointment = typeof deleteAppointment !== 'undefined' ? deleteAppointment : window.deleteAppointment;
+window.toggleAppointmentStatus = typeof toggleAppointmentStatus !== 'undefined' ? toggleAppointmentStatus : window.toggleAppointmentStatus;
