@@ -379,3 +379,19 @@ th {
   .hero { min-height: 260px; }
   .form-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+
+.weight-chart-container{
+  position:relative;
+  height:260px;
+  width:100%;
+}
+@media (min-width:768px){
+  .weight-chart-container{height:380px;}
+}
+.pagination{
+ display:flex;justify-content:center;align-items:center;gap:12px;margin-top:16px;
+}
+.pagination button{
+ border:0;background:var(--primary);color:white;border-radius:12px;padding:8px 14px;
+}

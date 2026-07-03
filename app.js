@@ -282,6 +282,13 @@ const PREGNANCY_IMPORT_DATA = {
   ]
 };
 const WEIGHT_IMPORT_FLAG_KEY = 'birthApp.weightImportDone.v1';
+const PAGE_SIZE=10;let currentWeightPage=1;
+const prevWeightPage=document.getElementById('prevWeightPage');
+const nextWeightPage=document.getElementById('nextWeightPage');
+const weightPageInfo=document.getElementById('weightPageInfo');
+prevWeightPage?.addEventListener('click',()=>{if(currentWeightPage>1){currentWeightPage--;renderWeightApp();}});
+nextWeightPage?.addEventListener('click',()=>{const max=Math.ceil(weightEntries.length/PAGE_SIZE);if(currentWeightPage<max){currentWeightPage++;renderWeightApp();}});
+
 
 
 openExams.addEventListener('click', async () => {
@@ -832,7 +839,12 @@ function renderWeightTable(entries) {
     return;
   }
 
-  weightTableBody.innerHTML = entries
+  const reversed=entries.slice().reverse();
+ const maxPages=Math.max(1,Math.ceil(reversed.length/PAGE_SIZE));
+ currentWeightPage=Math.min(currentWeightPage,maxPages);
+ weightPageInfo&&(weightPageInfo.textContent=`${currentWeightPage} / ${maxPages}`);
+ const pageItems=reversed.slice((currentWeightPage-1)*PAGE_SIZE,currentWeightPage*PAGE_SIZE);
+ weightTableBody.innerHTML = pageItems
     .slice()
     .reverse()
     .map(entry => `
