@@ -6,35 +6,32 @@
   <title>Birth App</title>
   <meta name="theme-color" content="#2563eb" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="styles.css?v=1.0.1" />
+  <link rel="stylesheet" href="styles.css?v=1.1.0" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
 <body>
   <div class="app-shell">
-    <header class="hero">
-      <div>
-        <p class="eyebrow">Birth App</p>
-        <h1>Ημερολόγιο εγκυμοσύνης & υγείας</h1>
-        <p class="subtitle">Όλες οι βασικές εφαρμογές σε ένα mobile-first hub.</p>
-      </div>
-      <div class="baby-badge">🩵</div>
-    </header>
-
-    <main>
+<main>
       <section id="homeView" class="view active">
 
-        <section class="dashboard-card" id="pregnancyDashboard">
-          <div class="dashboard-header">
+        <section class="hero-dashboard" id="pregnancyDashboard">
+          <div class="hero-dashboard-top">
             <div>
-              <p class="eyebrow dark">Σήμερα</p>
-              <h2 id="dashboardPregnancyWeek">Υπολογισμός εβδομάδας...</h2>
-              <p id="dashboardDueDate">ΤΕΡ 12/01/2026</p>
+              <p class="eyebrow">Birth App</p>
+              <h1>Ημερολόγιο εγκυμοσύνης & υγείας</h1>
+              <p class="subtitle">Όλη η εικόνα της εγκυμοσύνης σε ένα mobile-first hub.</p>
             </div>
-            <div class="dashboard-badge">👶</div>
+            <div class="baby-orb">🩵</div>
           </div>
 
-          <div class="dashboard-grid">
+          <div class="pregnancy-main-metric">
+            <span>Σήμερα</span>
+            <strong id="dashboardPregnancyWeek">Υπολογισμός εβδομάδας...</strong>
+            <small id="dashboardDueDate">ΤΕΡ 12/01/2026</small>
+          </div>
+
+          <div class="dashboard-grid hero-metrics">
             <div class="metric-card">
               <span>Τελευταίο βάρος</span>
               <strong id="dashboardLastWeight">—</strong>
@@ -325,7 +322,7 @@
     </main>
   </div>
 
-  <script src="config.js?v=1.0.1"></script>
-  <script src="app.js?v=1.0.1"></script>
+  <script src="config.js?v=1.1.0"></script>
+  <script src="app.js?v=1.1.0"></script>
 </body>
 </html>
