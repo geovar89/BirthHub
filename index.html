@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <link rel="apple-touch-icon" href="icons/icon-192.svg" />
 
-  <link rel="stylesheet" href="styles.css?v=1.4.0" />
+  <link rel="stylesheet" href="styles.css?v=1.5.0" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
@@ -35,6 +35,7 @@
       <button class="side-menu-item" type="button" data-view="nutrition"><span>🥗</span><strong>Διατροφή</strong></button>
       <button class="side-menu-item" type="button" data-view="appointments"><span>📅</span><strong>Ραντεβού</strong></button>
       <button class="side-menu-item" type="button" data-view="shopping"><span>🛍️</span><strong>Shopping List</strong></button>
+      <button class="side-menu-item" type="button" data-view="videos"><span>▶️</span><strong>Video Library</strong></button>
     </nav>
   </aside>
 
@@ -88,7 +89,7 @@
 
         <div class="section-title">
           <h2>Εφαρμογές</h2>
-          <span>6 διαθέσιμες</span>
+          <span>7 διαθέσιμες</span>
         </div>
 
         <div class="cards-grid">
@@ -142,6 +143,14 @@
             <div>
               <h3>Baby Shopping List</h3>
               <p>Λίστα αγορών με links, τιμές, κατηγορίες και εικόνες.</p>
+            </div>
+            <span class="arrow">›</span>
+          </button>
+          <button class="app-card videos" id="openVideos" type="button">
+            <div class="icon">▶️</div>
+            <div>
+              <h3>Pregnancy Video Library</h3>
+              <p>Curated YouTube videos για εγκυμοσύνη, τοκετό, θηλασμό και newborn care.</p>
             </div>
             <span class="arrow">›</span>
           </button>
@@ -430,11 +439,62 @@
         <div id="shoppingList" class="shopping-list"></div>
       </section>
 
+
+      <section id="videosView" class="view">
+        <div class="top-bar">
+          <button id="backHomeFromVideos" class="ghost-btn" type="button">‹ Πίσω</button>
+          <button id="resetVideoProgress" class="ghost-btn danger-text" type="button">Reset</button>
+        </div>
+        <div class="section-title sticky-title">
+          <div>
+            <h2>Pregnancy Video Library</h2>
+            <p>Curated YouTube videos. Στα αγγλικά videos δοκίμασε captions → auto-translate → Ελληνικά.</p>
+          </div>
+        </div>
+        <div class="video-summary-card">
+          <div>
+            <span class="mini-label">Suggested this week</span>
+            <h3 id="videosWeekTitle">Videos για αυτή την εβδομάδα</h3>
+            <p id="videosWeekSubtitle">Με βάση την τρέχουσα εβδομάδα κύησης.</p>
+          </div>
+          <div class="video-progress-pill" id="videosProgress">0/0</div>
+        </div>
+        <div id="videoCategoryTabs" class="video-category-tabs"></div>
+        <div class="video-player-card">
+          <div class="video-frame-wrap">
+            <iframe id="youtubePlayer" title="YouTube video player" frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen></iframe>
+          </div>
+          <div class="video-info">
+            <span id="videoCategoryBadge" class="video-category-badge">Category</span>
+            <h3 id="videoTitle">Video title</h3>
+            <p id="videoMeta">Channel</p>
+            <p class="video-subtitle-note">🌍 Αν υπάρχουν captions, μπορείς να βάλεις αυτόματη μετάφραση στα ελληνικά από το YouTube.</p>
+          </div>
+          <div class="video-actions">
+            <button id="prevVideo" type="button">‹ Previous</button>
+            <span id="videoCounter">1 / 1</span>
+            <button id="nextVideo" type="button">Next ›</button>
+          </div>
+          <div class="video-secondary-actions">
+            <button id="favoriteVideo" class="small-btn" type="button">☆ Favorite</button>
+            <button id="watchedVideo" class="small-btn" type="button">○ Mark watched</button>
+            <a id="openVideoYoutube" class="small-btn" href="#" target="_blank" rel="noopener noreferrer">Άνοιγμα στο YouTube</a>
+          </div>
+        </div>
+        <div class="video-list-header">
+          <h3>Όλα τα videos</h3>
+          <input id="videoSearch" type="search" placeholder="Αναζήτηση video..." />
+        </div>
+        <div id="videosList" class="videos-list"></div>
+      </section>
+
     </main>
   </div>
 
-  <script src="config.js?v=1.4.0"></script>
-  <script src="app.js?v=1.4.0"></script>
+  <script src="config.js?v=1.5.0"></script>
+  <script src="app.js?v=1.5.0"></script>
 
   <script>
     if ("serviceWorker" in navigator) {

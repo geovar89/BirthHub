@@ -2,6 +2,26 @@ const menuToggle = document.getElementById('menuToggle');
 const closeSideMenu = document.getElementById('closeSideMenu');
 const sideMenu = document.getElementById('sideMenu');
 const sideMenuOverlay = document.getElementById('sideMenuOverlay');
+const videosView = document.getElementById('videosView');
+const openVideos = document.getElementById('openVideos');
+const backHomeFromVideos = document.getElementById('backHomeFromVideos');
+const resetVideoProgress = document.getElementById('resetVideoProgress');
+const videoCategoryTabs = document.getElementById('videoCategoryTabs');
+const youtubePlayer = document.getElementById('youtubePlayer');
+const videoTitle = document.getElementById('videoTitle');
+const videoMeta = document.getElementById('videoMeta');
+const videoCategoryBadge = document.getElementById('videoCategoryBadge');
+const videoCounter = document.getElementById('videoCounter');
+const prevVideo = document.getElementById('prevVideo');
+const nextVideo = document.getElementById('nextVideo');
+const favoriteVideo = document.getElementById('favoriteVideo');
+const watchedVideo = document.getElementById('watchedVideo');
+const openVideoYoutube = document.getElementById('openVideoYoutube');
+const videoSearch = document.getElementById('videoSearch');
+const videosList = document.getElementById('videosList');
+const videosProgress = document.getElementById('videosProgress');
+const videosWeekTitle = document.getElementById('videosWeekTitle');
+const videosWeekSubtitle = document.getElementById('videosWeekSubtitle');
 const homeView = document.getElementById('homeView');
 const examsView = document.getElementById('examsView');
 const weightView = document.getElementById('weightView');
@@ -93,6 +113,8 @@ const shoppingPurchasedItems = document.getElementById('shoppingPurchasedItems')
 const shoppingPendingTotal = document.getElementById('shoppingPendingTotal');
 const shoppingPendingItems = document.getElementById('shoppingPendingItems');
 
+let activeVideoCategory = 'Suggested';
+let currentVideoIndex = 0;
 let exams = [];
 let weightEntries = [];
 let appointments = [];
@@ -101,6 +123,8 @@ let currentWeightPage = 1;
 let activeMealKey = 'breakfast';
 let shoppingItems = [];
 
+const VIDEO_PROGRESS_STORAGE_KEY = 'birthApp.videoProgress.v1';
+const YOUTUBE_VIDEOS = [{"id": "azFEJq6vn6g", "title": "25 Weeks Pregnant - What to Expect", "channel": "Diana In The Pink", "category": "Pregnancy week by week", "weekMin": 24, "weekMax": 26, "subtitles": "Auto-translate likely"}, {"id": "F00k_m7_lfw", "title": "24 Weeks Pregnant - What to Expect", "channel": "What To Expect", "category": "Pregnancy week by week", "weekMin": 23, "weekMax": 25, "subtitles": "Auto-translate likely"}, {"id": "BWLdj-2Xe58", "title": "27 Weeks Pregnant - What to Expect", "channel": "What To Expect", "category": "Pregnancy week by week", "weekMin": 26, "weekMax": 28, "subtitles": "Auto-translate likely"}, {"id": "EjnJWB9ZuzU", "title": "30 Weeks Pregnant - What to Expect", "channel": "What To Expect", "category": "Pregnancy week by week", "weekMin": 29, "weekMax": 31, "subtitles": "Auto-translate likely"}, {"id": "IaO8jfqQ9Uk", "title": "32 Weeks Pregnant - What to Expect", "channel": "What To Expect", "category": "Pregnancy week by week", "weekMin": 31, "weekMax": 33, "subtitles": "Auto-translate likely"}, {"id": "YBFvZoECv1M", "title": "Pregnancy: Weeks 25-28", "channel": "BabyCenter", "category": "Pregnancy week by week", "weekMin": 25, "weekMax": 28, "subtitles": "Auto-translate likely"}, {"id": "TF0DJXMP9YY", "title": "Pregnancy: Weeks 29-32", "channel": "BabyCenter", "category": "Pregnancy week by week", "weekMin": 29, "weekMax": 32, "subtitles": "Auto-translate likely"}, {"id": "KHzRsls5bbk", "title": "What to Pack in Your Hospital Bag", "channel": "Labor & Delivery nurse-led", "category": "Hospital Bag", "weekMin": 30, "weekMax": 40, "subtitles": "Auto-translate likely"}, {"id": "lLQk72acMig", "title": "Hospital Bag for Mom, Partner and Baby", "channel": "The Doctors Bjorkman", "category": "Hospital Bag", "weekMin": 30, "weekMax": 40, "subtitles": "Auto-translate likely"}, {"id": "-WesZIBPTi8", "title": "10 Things Your Labor Nurse Wants You to Pack", "channel": "Nurse Zabe", "category": "Hospital Bag", "weekMin": 30, "weekMax": 40, "subtitles": "Auto-translate likely"}, {"id": "hpgjwK_oQe0", "title": "Newborn Care: Pediatrician Guide to Week 1", "channel": "The Doctors Bjorkman", "category": "Newborn Care", "weekMin": 32, "weekMax": 42, "subtitles": "Auto-translate likely"}, {"id": "CXWzqbe1i9c", "title": "Guide To Taking Care Of a Newborn Baby", "channel": "Baby care guide", "category": "Newborn Care", "weekMin": 32, "weekMax": 42, "subtitles": "Auto-translate likely"}, {"id": "7yxd25nZMaE", "title": "Complete Guide to Bathing a Newborn Baby", "channel": "Baby care guide", "category": "Newborn Care", "weekMin": 32, "weekMax": 42, "subtitles": "Auto-translate likely"}, {"id": "8mfZK0l8RNg", "title": "How to Play With a Newborn", "channel": "Baby development", "category": "Newborn Care", "weekMin": 35, "weekMax": 42, "subtitles": "Auto-translate likely"}, {"id": "qYYTMun-S4I", "title": "Breastfeeding: Latch & Positioning", "channel": "EvergreenHealth", "category": "Breastfeeding", "weekMin": 28, "weekMax": 42, "subtitles": "Auto-translate likely"}, {"id": "su_0xl8HI6Q", "title": "Getting a Deeper Latch", "channel": "Breastfeeding support", "category": "Breastfeeding", "weekMin": 28, "weekMax": 42, "subtitles": "Auto-translate likely"}, {"id": "JjKztwxkT7g", "title": "Best Position to Get a Deep and Correct Latch", "channel": "Breastfeeding education", "category": "Breastfeeding", "weekMin": 28, "weekMax": 42, "subtitles": "Auto-translate likely"}, {"id": "8kTKnZOmJXU", "title": "Breastfeeding How To", "channel": "NYU Langone", "category": "Breastfeeding", "weekMin": 28, "weekMax": 42, "subtitles": "Auto-translate likely"}, {"id": "wVRLDJcVKxk", "title": "14 Life-Changing Tips For First Time Moms & Dads", "channel": "New parent tips", "category": "Dad Academy", "weekMin": 30, "weekMax": 42, "subtitles": "Auto-translate likely"}, {"id": "GdP-1bwuu94", "title": "Realistic Day in the Life With a Newborn Baby", "channel": "Newborn life", "category": "Dad Academy", "weekMin": 34, "weekMax": 42, "subtitles": "Auto-translate likely"}, {"id": "YZbgcHz5TC8", "title": "How To Dress a Newborn", "channel": "Baby Care Basics", "category": "Baby Shopping", "weekMin": 30, "weekMax": 42, "subtitles": "Auto-translate likely"}];
 const WEIGHT_STORAGE_KEY = 'birthApp.weightEntries.v1';
 const APPOINTMENTS_STORAGE_KEY = 'birthApp.appointments.v1';
 const WEIGHT_PAGE_SIZE = 10;
@@ -377,8 +401,18 @@ document.querySelectorAll('[data-view]').forEach(item => {
     if (view === 'nutrition') renderNutritionApp();
     if (view === 'appointments') { loadAppointments(); renderAppointments(); }
     if (view === 'shopping') { loadShoppingItems(); renderShoppingApp(); }
+    if (view === 'videos') renderVideoApp();
   });
 });
+
+openVideos?.addEventListener('click', () => { showView('videos'); renderVideoApp(); });
+backHomeFromVideos?.addEventListener('click', () => showView('home'));
+prevVideo?.addEventListener('click', () => moveVideo(-1));
+nextVideo?.addEventListener('click', () => moveVideo(1));
+favoriteVideo?.addEventListener('click', () => toggleVideoFlag('favorite'));
+watchedVideo?.addEventListener('click', () => toggleVideoFlag('watched'));
+videoSearch?.addEventListener('input', () => { currentVideoIndex = 0; renderVideoApp(); });
+resetVideoProgress?.addEventListener('click', () => { if(confirm('Να διαγραφεί η πρόοδος watched/favorites;')){ localStorage.removeItem(VIDEO_PROGRESS_STORAGE_KEY); renderVideoApp(); }});
 
 openExams?.addEventListener('click', async () => {
   showView('exams');
@@ -468,6 +502,7 @@ function showView(view) {
   appointmentsView?.classList.toggle('active', view === 'appointments');
   nutritionView?.classList.toggle('active', view === 'nutrition');
   shoppingView?.classList.toggle('active', view === 'shopping');
+  videosView?.classList.toggle('active', view === 'videos');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -1463,6 +1498,20 @@ function formatCurrency(value) {
 }
 window.deleteShoppingItem = deleteShoppingItem;
 window.toggleShoppingStatus = toggleShoppingStatus;
+
+
+function getVideoProgress(){try{return JSON.parse(localStorage.getItem(VIDEO_PROGRESS_STORAGE_KEY))||{}}catch{return {}}}
+function saveVideoProgress(p){localStorage.setItem(VIDEO_PROGRESS_STORAGE_KEY,JSON.stringify(p))}
+function getVideoCategories(){return ['Suggested','Favorites','Pregnancy week by week','Hospital Bag','Newborn Care','Breastfeeding','Baby Shopping','Dad Academy']}
+function getSuggestedVideos(){const p=calculatePregnancyInfo(new Date().toISOString().slice(0,10));const w=Number(p.week||0);const s=YOUTUBE_VIDEOS.filter(v=>w>=v.weekMin&&w<=v.weekMax);return s.length?s:YOUTUBE_VIDEOS.slice(0,8)}
+function getFilteredVideos(){const p=getVideoProgress();const q=(videoSearch?.value||'').trim().toLowerCase();let items=activeVideoCategory==='Suggested'?getSuggestedVideos():activeVideoCategory==='Favorites'?YOUTUBE_VIDEOS.filter(v=>p[v.id]?.favorite):YOUTUBE_VIDEOS.filter(v=>v.category===activeVideoCategory);if(q)items=items.filter(v=>v.title.toLowerCase().includes(q)||v.channel.toLowerCase().includes(q)||v.category.toLowerCase().includes(q));return items}
+function renderVideoApp(){renderVideoTabs();renderVideoWeekSummary();const vids=getFilteredVideos();const p=getVideoProgress();const wc=YOUTUBE_VIDEOS.filter(v=>p[v.id]?.watched).length;if(videosProgress)videosProgress.textContent=`${wc}/${YOUTUBE_VIDEOS.length}`;if(!vids.length){if(youtubePlayer)youtubePlayer.removeAttribute('src');if(videoTitle)videoTitle.textContent='Δεν βρέθηκαν videos';if(videoMeta)videoMeta.textContent='Άλλαξε κατηγορία ή αναζήτηση.';if(videoCounter)videoCounter.textContent='0 / 0';if(videosList)videosList.innerHTML='<div class="empty">Δεν υπάρχουν videos.</div>';return}currentVideoIndex=Math.min(Math.max(0,currentVideoIndex),vids.length-1);renderCurrentVideo(vids[currentVideoIndex],vids.length);renderVideosList(vids)}
+function renderVideoTabs(){if(!videoCategoryTabs)return;videoCategoryTabs.innerHTML=getVideoCategories().map(c=>`<button class="video-category-tab ${c===activeVideoCategory?'active':''}" type="button" data-video-category="${escapeAttribute(c)}">${escapeHtml(c)}</button>`).join('');videoCategoryTabs.querySelectorAll('[data-video-category]').forEach(b=>b.addEventListener('click',()=>{activeVideoCategory=b.dataset.videoCategory;currentVideoIndex=0;renderVideoApp()}))}
+function renderVideoWeekSummary(){const p=calculatePregnancyInfo(new Date().toISOString().slice(0,10));if(videosWeekTitle)videosWeekTitle.textContent=`Εβδομάδα ${p.label||'κύησης'}`;if(videosWeekSubtitle)videosWeekSubtitle.textContent='Προτεινόμενα videos με βάση την εβδομάδα κύησης και το στάδιο προετοιμασίας.'}
+function renderCurrentVideo(v,total){const p=getVideoProgress();const s=p[v.id]||{};if(youtubePlayer)youtubePlayer.src=`https://www.youtube-nocookie.com/embed/${v.id}`;if(videoTitle)videoTitle.textContent=v.title;if(videoMeta)videoMeta.textContent=`${v.channel} · ${v.category} · ${v.subtitles}`;if(videoCategoryBadge)videoCategoryBadge.textContent=v.category;if(videoCounter)videoCounter.textContent=`${currentVideoIndex+1} / ${total}`;if(openVideoYoutube)openVideoYoutube.href=`https://www.youtube.com/watch?v=${v.id}`;if(favoriteVideo){favoriteVideo.textContent=s.favorite?'⭐ Favorite':'☆ Favorite';favoriteVideo.classList.toggle('active',!!s.favorite)}if(watchedVideo){watchedVideo.textContent=s.watched?'✓ Watched':'○ Mark watched';watchedVideo.classList.toggle('active',!!s.watched)}}
+function moveVideo(d){const vids=getFilteredVideos();if(!vids.length)return;currentVideoIndex=(currentVideoIndex+d+vids.length)%vids.length;renderVideoApp()}
+function toggleVideoFlag(flag){const vids=getFilteredVideos();const v=vids[currentVideoIndex];if(!v)return;const p=getVideoProgress();p[v.id]=p[v.id]||{};p[v.id][flag]=!p[v.id][flag];saveVideoProgress(p);renderVideoApp()}
+function renderVideosList(vids){if(!videosList)return;const p=getVideoProgress();videosList.innerHTML=vids.map((v,i)=>{const s=p[v.id]||{};return `<button class="video-list-item ${i===currentVideoIndex?'active':''}" type="button" data-video-index="${i}"><img src="https://img.youtube.com/vi/${escapeAttribute(v.id)}/hqdefault.jpg" alt="" loading="lazy" /><div><strong>${escapeHtml(v.title)}</strong><span>${escapeHtml(v.channel)} · ${escapeHtml(v.category)}</span><em>${s.favorite?'⭐ ':''}${s.watched?'✓ Watched':'Not watched'}</em></div></button>`}).join('');videosList.querySelectorAll('[data-video-index]').forEach(b=>b.addEventListener('click',()=>{currentVideoIndex=Number(b.dataset.videoIndex);renderVideoApp();youtubePlayer?.scrollIntoView({behavior:'smooth',block:'center'})}))}
 
 function renderDashboard() {
   try { renderDashboardPregnancyInfo(); } catch (e) { console.error(e); }
