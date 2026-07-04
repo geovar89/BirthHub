@@ -63,17 +63,43 @@ const nutritionContent = document.getElementById('nutritionContent');
 const nutritionProgressText = document.getElementById('nutritionProgressText');
 const nutritionProgressPercent = document.getElementById('nutritionProgressPercent');
 
+const shoppingView = document.getElementById('shoppingView');
+const openShopping = document.getElementById('openShopping');
+const backHomeFromShopping = document.getElementById('backHomeFromShopping');
+const clearShoppingItems = document.getElementById('clearShoppingItems');
+const shoppingForm = document.getElementById('shoppingForm');
+const shoppingUrl = document.getElementById('shoppingUrl');
+const shoppingCategory = document.getElementById('shoppingCategory');
+const shoppingTitle = document.getElementById('shoppingTitle');
+const shoppingPrice = document.getElementById('shoppingPrice');
+const shoppingPriority = document.getElementById('shoppingPriority');
+const shoppingStatus = document.getElementById('shoppingStatus');
+const shoppingImage = document.getElementById('shoppingImage');
+const shoppingNotes = document.getElementById('shoppingNotes');
+const fetchShoppingMeta = document.getElementById('fetchShoppingMeta');
+const shoppingSearch = document.getElementById('shoppingSearch');
+const shoppingCategoryFilter = document.getElementById('shoppingCategoryFilter');
+const shoppingList = document.getElementById('shoppingList');
+const shoppingTotal = document.getElementById('shoppingTotal');
+const shoppingTotalItems = document.getElementById('shoppingTotalItems');
+const shoppingPurchasedTotal = document.getElementById('shoppingPurchasedTotal');
+const shoppingPurchasedItems = document.getElementById('shoppingPurchasedItems');
+const shoppingPendingTotal = document.getElementById('shoppingPendingTotal');
+const shoppingPendingItems = document.getElementById('shoppingPendingItems');
+
 let exams = [];
 let weightEntries = [];
 let appointments = [];
 let weightChart = null;
 let currentWeightPage = 1;
 let activeMealKey = 'breakfast';
+let shoppingItems = [];
 
 const WEIGHT_STORAGE_KEY = 'birthApp.weightEntries.v1';
 const APPOINTMENTS_STORAGE_KEY = 'birthApp.appointments.v1';
 const WEIGHT_PAGE_SIZE = 10;
 const NUTRITION_STORAGE_KEY = 'birthApp.nutritionChecklist.v1';
+const SHOPPING_STORAGE_KEY = 'birthApp.shoppingItems.v1';
 const PREGNANCY_IMPORT_DATA = {
   "lastMenstruationDate": "2026-01-12",
   "momWeightBeforePregnancy": 82.5,
@@ -379,6 +405,14 @@ nextWeightPage?.addEventListener('click', () => {
     renderWeightApp();
   }
 });
+openShopping?.addEventListener('click', () => { showView('shopping'); loadShoppingItems(); renderShoppingApp(); });
+backHomeFromShopping?.addEventListener('click', () => showView('home'));
+shoppingForm?.addEventListener('submit', handleShoppingSubmit);
+shoppingSearch?.addEventListener('input', renderShoppingApp);
+shoppingCategoryFilter?.addEventListener('change', renderShoppingApp);
+clearShoppingItems?.addEventListener('click', clearAllShoppingItems);
+fetchShoppingMeta?.addEventListener('click', fetchShoppingMetadata);
+
 resetNutritionDay?.addEventListener('click', () => {
   localStorage.removeItem(NUTRITION_STORAGE_KEY);
   renderNutritionApp();
@@ -391,6 +425,7 @@ function showView(view) {
   weightView?.classList.toggle('active', view === 'weight');
   appointmentsView?.classList.toggle('active', view === 'appointments');
   nutritionView?.classList.toggle('active', view === 'nutrition');
+  shoppingView?.classList.toggle('active', view === 'shopping');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -1233,6 +1268,137 @@ function renderFoodOption(option) {
 
 
 
+
+
+function loadShoppingItems() {
+  try { shoppingItems = JSON.parse(localStorage.getItem(SHOPPING_STORAGE_KEY)) || []; }
+  catch { shoppingItems = []; }
+}
+function saveShoppingItems() { localStorage.setItem(SHOPPING_STORAGE_KEY, JSON.stringify(shoppingItems)); }
+function handleShoppingSubmit(event) {
+  event.preventDefault();
+  const title = shoppingTitle.value.trim();
+  if (!title) return;
+  const item = {
+    id: createId(),
+    url: shoppingUrl.value.trim(),
+    category: shoppingCategory.value,
+    title,
+    price: Number(String(shoppingPrice.value || '0').replace(',', '.')) || 0,
+    priority: shoppingPriority.value,
+    status: shoppingStatus.value,
+    image: shoppingImage.value.trim(),
+    notes: shoppingNotes.value.trim(),
+    createdAt: new Date().toISOString()
+  };
+  shoppingItems.unshift(item);
+  saveShoppingItems();
+  renderShoppingApp();
+  shoppingForm.reset();
+  shoppingPriority.value = 'Must have';
+  shoppingStatus.value = 'Υπό σκέψη';
+}
+async function fetchShoppingMetadata() {
+  const url = shoppingUrl?.value?.trim();
+  if (!url) { alert('Βάλε πρώτα link προϊόντος.'); return; }
+  if (fetchShoppingMeta) fetchShoppingMeta.textContent = 'Ανάκτηση...';
+  try {
+    const response = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const result = await response.json();
+    const data = result?.data || {};
+    if (data.title && !shoppingTitle.value) shoppingTitle.value = data.title;
+    if (data.image?.url && !shoppingImage.value) shoppingImage.value = data.image.url;
+    if (data.description && !shoppingNotes.value) shoppingNotes.value = data.description;
+    if (!data.title && !data.image?.url) alert('Δεν βρέθηκαν αυτόματα στοιχεία. Συμπλήρωσέ τα χειροκίνητα.');
+  } catch (error) {
+    console.error(error);
+    alert('Δεν μπόρεσα να διαβάσω metadata από το link. Συμπλήρωσε τίτλο/εικόνα χειροκίνητα.');
+  } finally {
+    if (fetchShoppingMeta) fetchShoppingMeta.textContent = 'Ανάκτηση στοιχείων από link';
+  }
+}
+function clearAllShoppingItems() {
+  if (!shoppingItems.length) return;
+  if (!confirm('Θέλεις σίγουρα να διαγραφεί όλη η shopping list από αυτή τη συσκευή;')) return;
+  shoppingItems = [];
+  saveShoppingItems();
+  renderShoppingApp();
+}
+function deleteShoppingItem(id) {
+  shoppingItems = shoppingItems.filter(item => item.id !== id);
+  saveShoppingItems();
+  renderShoppingApp();
+}
+function toggleShoppingStatus(id) {
+  shoppingItems = shoppingItems.map(item => item.id === id ? { ...item, status: item.status === 'Αγοράστηκε' ? 'Υπό σκέψη' : 'Αγοράστηκε' } : item);
+  saveShoppingItems();
+  renderShoppingApp();
+}
+function renderShoppingApp() {
+  renderShoppingSummary();
+  const query = (shoppingSearch?.value || '').trim().toLowerCase();
+  const category = shoppingCategoryFilter?.value || 'all';
+  const filtered = shoppingItems.filter(item => {
+    const matchesCategory = category === 'all' || item.category === category;
+    const matchesQuery = item.title.toLowerCase().includes(query) || (item.category || '').toLowerCase().includes(query) || (item.notes || '').toLowerCase().includes(query);
+    return matchesCategory && matchesQuery;
+  });
+  if (!shoppingList) return;
+  if (!filtered.length) { shoppingList.innerHTML = `<div class="empty">Δεν υπάρχουν προϊόντα στη λίστα.</div>`; return; }
+  const groups = filtered.reduce((acc, item) => {
+    const key = item.category || 'Άλλο';
+    acc[key] = acc[key] || [];
+    acc[key].push(item);
+    return acc;
+  }, {});
+  shoppingList.innerHTML = Object.entries(groups).map(([categoryName, items]) => `
+    <section class="shopping-category-group">
+      <div class="shopping-category-title"><h3>${escapeHtml(categoryName)}</h3><span>${items.length} προϊόντα</span></div>
+      <div class="shopping-items">${items.map(renderShoppingItem).join('')}</div>
+    </section>
+  `).join('');
+}
+function renderShoppingSummary() {
+  const total = shoppingItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
+  const purchased = shoppingItems.filter(item => item.status === 'Αγοράστηκε');
+  const pending = shoppingItems.filter(item => item.status !== 'Αγοράστηκε' && item.status !== 'Απορρίφθηκε');
+  const purchasedTotal = purchased.reduce((sum, item) => sum + Number(item.price || 0), 0);
+  const pendingTotal = pending.reduce((sum, item) => sum + Number(item.price || 0), 0);
+  if (shoppingTotal) shoppingTotal.textContent = formatCurrency(total);
+  if (shoppingTotalItems) shoppingTotalItems.textContent = `${shoppingItems.length} προϊόντα`;
+  if (shoppingPurchasedTotal) shoppingPurchasedTotal.textContent = formatCurrency(purchasedTotal);
+  if (shoppingPurchasedItems) shoppingPurchasedItems.textContent = `${purchased.length} προϊόντα`;
+  if (shoppingPendingTotal) shoppingPendingTotal.textContent = formatCurrency(pendingTotal);
+  if (shoppingPendingItems) shoppingPendingItems.textContent = `${pending.length} προϊόντα`;
+}
+function renderShoppingItem(item) {
+  const statusClass = item.status === 'Αγοράστηκε' ? 'shopping-status-done' : item.status === 'Απορρίφθηκε' ? 'shopping-status-rejected' : '';
+  const imageHtml = item.image ? `<img src="${escapeAttribute(item.image)}" alt="" loading="lazy" onerror="this.remove();" />` : `<span>🛍️</span>`;
+  return `
+    <article class="shopping-item ${item.status === 'Αγοράστηκε' ? 'purchased' : ''}">
+      <div class="shopping-thumb">${imageHtml}</div>
+      <div class="shopping-info">
+        <div class="shopping-item-top">
+          <div><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.category)} · ${escapeHtml(item.priority)}</p></div>
+          <strong>${formatCurrency(item.price || 0)}</strong>
+        </div>
+        ${item.notes ? `<p class="shopping-notes">${escapeHtml(item.notes)}</p>` : ''}
+        <div class="shopping-actions">
+          <span class="shopping-status ${statusClass}">${escapeHtml(item.status)}</span>
+          ${item.url ? `<a class="small-btn" href="${escapeAttribute(item.url)}" target="_blank" rel="noopener noreferrer">Άνοιγμα</a>` : ''}
+          <button class="small-btn" type="button" onclick="toggleShoppingStatus('${escapeAttribute(item.id)}')">${item.status === 'Αγοράστηκε' ? 'Undo' : 'Αγοράστηκε'}</button>
+          <button class="small-btn danger" type="button" onclick="deleteShoppingItem('${escapeAttribute(item.id)}')">Διαγραφή</button>
+        </div>
+      </div>
+    </article>
+  `;
+}
+function formatCurrency(value) {
+  return Number(value || 0).toLocaleString('el-GR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 });
+}
+window.deleteShoppingItem = deleteShoppingItem;
+window.toggleShoppingStatus = toggleShoppingStatus;
 
 function renderDashboard() {
   try { renderDashboardPregnancyInfo(); } catch (e) { console.error(e); }

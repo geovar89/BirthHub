@@ -6,7 +6,7 @@
   <title>Birth App</title>
   <meta name="theme-color" content="#2563eb" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="styles.css?v=1.1.1" />
+  <link rel="stylesheet" href="styles.css?v=1.2.0" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
@@ -61,7 +61,7 @@
 
         <div class="section-title">
           <h2>Εφαρμογές</h2>
-          <span>5 διαθέσιμες</span>
+          <span>6 διαθέσιμες</span>
         </div>
 
         <div class="cards-grid">
@@ -106,6 +106,15 @@
             <div>
               <h3>Ραντεβού εγκυμοσύνης</h3>
               <p>Οργάνωση επισκέψεων, εξετάσεων, γιατρών και σημειώσεων.</p>
+            </div>
+            <span class="arrow">›</span>
+          </button>
+
+          <button class="app-card shopping" id="openShopping" type="button">
+            <div class="icon">🛍️</div>
+            <div>
+              <h3>Baby Shopping List</h3>
+              <p>Λίστα αγορών με links, τιμές, κατηγορίες και εικόνες.</p>
             </div>
             <span class="arrow">›</span>
           </button>
@@ -319,10 +328,78 @@
         </div>
       </section>
 
+
+      <section id="shoppingView" class="view">
+        <div class="top-bar">
+          <button id="backHomeFromShopping" class="ghost-btn" type="button">‹ Πίσω</button>
+          <button id="clearShoppingItems" class="ghost-btn danger-text" type="button">Καθαρισμός</button>
+        </div>
+
+        <div class="section-title sticky-title">
+          <div>
+            <h2>Baby Shopping List</h2>
+            <p>Προϊόντα, links, κατηγορίες και κόστος για τις αγορές του μωρού.</p>
+          </div>
+        </div>
+
+        <div class="shopping-summary-grid">
+          <div class="shopping-summary-card"><span>Σύνολο λίστας</span><strong id="shoppingTotal">0€</strong><small id="shoppingTotalItems">0 προϊόντα</small></div>
+          <div class="shopping-summary-card"><span>Αγορασμένα</span><strong id="shoppingPurchasedTotal">0€</strong><small id="shoppingPurchasedItems">0 προϊόντα</small></div>
+          <div class="shopping-summary-card"><span>Εκκρεμούν</span><strong id="shoppingPendingTotal">0€</strong><small id="shoppingPendingItems">0 προϊόντα</small></div>
+        </div>
+
+        <form id="shoppingForm" class="form-card shopping-form">
+          <div class="form-grid">
+            <label><span>Link προϊόντος</span><input id="shoppingUrl" type="url" placeholder="https://..." /></label>
+            <label><span>Κατηγορία</span><select id="shoppingCategory">
+              <option value="Καρότσι & μετακίνηση">Καρότσι & μετακίνηση</option>
+              <option value="Δωμάτιο">Δωμάτιο</option>
+              <option value="Λίκνο / Ύπνος">Λίκνο / Ύπνος</option>
+              <option value="Ρούχα">Ρούχα</option>
+              <option value="Μπάνιο & υγιεινή">Μπάνιο & υγιεινή</option>
+              <option value="Σίτιση">Σίτιση</option>
+              <option value="Βόλτα">Βόλτα</option>
+              <option value="Μαιευτήριο">Μαιευτήριο</option>
+              <option value="Φαρμακείο">Φαρμακείο</option>
+              <option value="Παιχνίδια">Παιχνίδια</option>
+              <option value="Άλλο">Άλλο</option>
+            </select></label>
+            <label><span>Τίτλος</span><input id="shoppingTitle" type="text" placeholder="π.χ. Καρότσι 3 σε 1" required /></label>
+            <label><span>Τιμή</span><input id="shoppingPrice" type="number" inputmode="decimal" step="0.01" min="0" placeholder="π.χ. 499" /></label>
+            <label><span>Priority</span><select id="shoppingPriority"><option value="Must have">Must have</option><option value="Nice to have">Nice to have</option><option value="Later">Later</option></select></label>
+            <label><span>Status</span><select id="shoppingStatus"><option value="Υπό σκέψη">Υπό σκέψη</option><option value="Αγοράστηκε">Αγοράστηκε</option><option value="Απορρίφθηκε">Απορρίφθηκε</option></select></label>
+          </div>
+          <label class="full-field"><span>Image URL</span><input id="shoppingImage" type="url" placeholder="Προαιρετικά — συμπληρώνεται αυτόματα αν βρεθεί εικόνα" /></label>
+          <label class="full-field"><span>Σημειώσεις</span><textarea id="shoppingNotes" rows="3" placeholder="χρώμα, κατάστημα, εναλλακτική κ.λπ."></textarea></label>
+          <button class="secondary-btn" id="fetchShoppingMeta" type="button">Ανάκτηση στοιχείων από link</button>
+          <button class="primary-btn" type="submit">Προσθήκη προϊόντος</button>
+        </form>
+
+        <div class="shopping-controls">
+          <input id="shoppingSearch" type="search" placeholder="Αναζήτηση προϊόντος..." />
+          <select id="shoppingCategoryFilter">
+            <option value="all">Όλες οι κατηγορίες</option>
+            <option value="Καρότσι & μετακίνηση">Καρότσι & μετακίνηση</option>
+            <option value="Δωμάτιο">Δωμάτιο</option>
+            <option value="Λίκνο / Ύπνος">Λίκνο / Ύπνος</option>
+            <option value="Ρούχα">Ρούχα</option>
+            <option value="Μπάνιο & υγιεινή">Μπάνιο & υγιεινή</option>
+            <option value="Σίτιση">Σίτιση</option>
+            <option value="Βόλτα">Βόλτα</option>
+            <option value="Μαιευτήριο">Μαιευτήριο</option>
+            <option value="Φαρμακείο">Φαρμακείο</option>
+            <option value="Παιχνίδια">Παιχνίδια</option>
+            <option value="Άλλο">Άλλο</option>
+          </select>
+        </div>
+
+        <div id="shoppingList" class="shopping-list"></div>
+      </section>
+
     </main>
   </div>
 
-  <script src="config.js?v=1.1.1"></script>
-  <script src="app.js?v=1.1.1"></script>
+  <script src="config.js?v=1.2.0"></script>
+  <script src="app.js?v=1.2.0"></script>
 </body>
 </html>
