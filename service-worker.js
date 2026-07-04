@@ -1,10 +1,10 @@
-const CACHE_NAME = "birthhub-pwa-v1.3.0";
+const CACHE_NAME = "birthhub-pwa-v1.4.0";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=1.3.0",
-  "./config.js?v=1.3.0",
-  "./app.js?v=1.3.0",
+  "./styles.css?v=1.4.0",
+  "./config.js?v=1.4.0",
+  "./app.js?v=1.4.0",
   "./manifest.json",
   "./icons/icon-192.svg",
   "./icons/icon-512.svg",

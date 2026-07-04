@@ -12,11 +12,32 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <link rel="apple-touch-icon" href="icons/icon-192.svg" />
 
-  <link rel="stylesheet" href="styles.css?v=1.3.0" />
+  <link rel="stylesheet" href="styles.css?v=1.4.0" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
 <body>
+
+  <button id="menuToggle" class="menu-toggle" type="button" aria-label="Άνοιγμα menu">
+    <span></span><span></span><span></span>
+  </button>
+  <div id="sideMenuOverlay" class="side-menu-overlay"></div>
+  <aside id="sideMenu" class="side-menu" aria-hidden="true">
+    <div class="side-menu-header">
+      <div><p>Birth Hub</p><h2>Εφαρμογές</h2></div>
+      <button id="closeSideMenu" class="close-side-menu" type="button" aria-label="Κλείσιμο menu">×</button>
+    </div>
+    <nav class="side-menu-nav">
+      <button class="side-menu-item" type="button" data-view="home"><span>🏠</span><strong>Dashboard</strong></button>
+      <a class="side-menu-item" href="https://geovar89.github.io/blood/"><span>🫀</span><strong>Blood Pressure</strong></a>
+      <button class="side-menu-item" type="button" data-view="exams"><span>📁</span><strong>Αποθετήριο εξετάσεων</strong></button>
+      <button class="side-menu-item" type="button" data-view="weight"><span>⚖️</span><strong>Βάρος εγκύου</strong></button>
+      <button class="side-menu-item" type="button" data-view="nutrition"><span>🥗</span><strong>Διατροφή</strong></button>
+      <button class="side-menu-item" type="button" data-view="appointments"><span>📅</span><strong>Ραντεβού</strong></button>
+      <button class="side-menu-item" type="button" data-view="shopping"><span>🛍️</span><strong>Shopping List</strong></button>
+    </nav>
+  </aside>
+
   <div class="app-shell">
 <main>
       <section id="homeView" class="view active">
@@ -412,8 +433,8 @@
     </main>
   </div>
 
-  <script src="config.js?v=1.3.0"></script>
-  <script src="app.js?v=1.3.0"></script>
+  <script src="config.js?v=1.4.0"></script>
+  <script src="app.js?v=1.4.0"></script>
 
   <script>
     if ("serviceWorker" in navigator) {

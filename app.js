@@ -1,3 +1,7 @@
+const menuToggle = document.getElementById('menuToggle');
+const closeSideMenu = document.getElementById('closeSideMenu');
+const sideMenu = document.getElementById('sideMenu');
+const sideMenuOverlay = document.getElementById('sideMenuOverlay');
 const homeView = document.getElementById('homeView');
 const examsView = document.getElementById('examsView');
 const weightView = document.getElementById('weightView');
@@ -358,6 +362,24 @@ const PREGNANCY_IMPORT_DATA = {
 const WEIGHT_IMPORT_FLAG_KEY = 'birthApp.weightImportDone.v1';
 
 
+
+menuToggle?.addEventListener('click', openSideMenu);
+closeSideMenu?.addEventListener('click', closeMenu);
+sideMenuOverlay?.addEventListener('click', closeMenu);
+document.addEventListener('keydown', event => { if (event.key === 'Escape') closeMenu(); });
+document.querySelectorAll('[data-view]').forEach(item => {
+  item.addEventListener('click', async () => {
+    const view = item.dataset.view;
+    closeMenu();
+    showView(view);
+    if (view === 'exams' && !exams.length) await loadFromConfiguredExcel();
+    if (view === 'weight') { loadWeightEntries(); importPregnancyWeightsIfNeeded(); renderWeightApp(); renderDashboardWeight(); }
+    if (view === 'nutrition') renderNutritionApp();
+    if (view === 'appointments') { loadAppointments(); renderAppointments(); }
+    if (view === 'shopping') { loadShoppingItems(); renderShoppingApp(); }
+  });
+});
+
 openExams?.addEventListener('click', async () => {
   showView('exams');
   if (!exams.length) await loadFromConfiguredExcel();
@@ -422,6 +444,21 @@ resetNutritionDay?.addEventListener('click', () => {
   localStorage.removeItem(NUTRITION_STORAGE_KEY);
   renderNutritionApp();
 });
+
+
+function openSideMenu() {
+  sideMenu?.classList.add('open');
+  sideMenuOverlay?.classList.add('open');
+  document.body.classList.add('menu-open');
+  sideMenu?.setAttribute('aria-hidden', 'false');
+}
+
+function closeMenu() {
+  sideMenu?.classList.remove('open');
+  sideMenuOverlay?.classList.remove('open');
+  document.body.classList.remove('menu-open');
+  sideMenu?.setAttribute('aria-hidden', 'true');
+}
 
 function showView(view) {
   if (view === 'home') renderDashboard();
