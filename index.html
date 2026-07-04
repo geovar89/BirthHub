@@ -34,7 +34,7 @@
       <button class="side-menu-item" type="button" data-view="weight"><span>⚖️</span><strong>Βάρος εγκύου</strong></button>
       <button class="side-menu-item" type="button" data-view="nutrition"><span>🥗</span><strong>Διατροφή</strong></button>
       <button class="side-menu-item" type="button" data-view="appointments"><span>📅</span><strong>Ραντεβού</strong></button>
-      <button class="side-menu-item" type="button" data-view="shopping"><span>🛍️</span><strong>Shopping List</strong></button>
+      <button class="side-menu-item" type="button" data-view="shopping"><span>🛍️</span><strong>Shopping List</strong></button><button class="side-menu-item" type="button" data-view="maternity"><span>👶</span><strong>Άδεια Μητρότητας</strong></button>
       <button class="side-menu-item" type="button" data-view="videos"><span>▶️</span><strong>Video Library</strong></button>
     </nav>
   </aside>
@@ -89,7 +89,7 @@
 
         <div class="section-title">
           <h2>Εφαρμογές</h2>
-          <span>7 διαθέσιμες</span>
+          <span>8 διαθέσιμες</span>
         </div>
 
         <div class="cards-grid">
@@ -154,7 +154,7 @@
             </div>
             <span class="arrow">›</span>
           </button>
-        </div>
+                  <button class="app-card maternity" id="openMaternity" type="button"><div class="icon">👶</div><div><h3>Άδεια Μητρότητας</h3><p>Υπολογισμός κυοφορίας, λοχείας και ΔΥΠΑ.</p></div><span class="arrow">›</span></button></div>
       </section>
 
       <section id="examsView" class="view">
@@ -490,7 +490,7 @@
         <div id="videosList" class="videos-list"></div>
       </section>
 
-    </main>
+    <section id="maternityView" class="view"><div class="top-bar"><button id="backHomeFromMaternity" class="ghost-btn">‹ Πίσω</button></div><div class="section-title sticky-title"><div><h2>Υπολογιστής Άδειας Μητρότητας</h2><p>Υπολογισμός βάσει ΠΗΤ.</p></div></div><div class="form-card"><label><span>Πιθανή Ημερομηνία Τοκετού</span><input id="eddInput" type="date"></label><button id="calcMaternity" class="primary-btn">Υπολογισμός</button></div><div id="maternityResults" class="shopping-summary-grid"></div></section></main>
   </div>
 
   <script src="config.js?v=1.5.0"></script>
