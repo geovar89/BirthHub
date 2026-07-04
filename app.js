@@ -68,6 +68,8 @@ const openShopping = document.getElementById('openShopping');
 const backHomeFromShopping = document.getElementById('backHomeFromShopping');
 const clearShoppingItems = document.getElementById('clearShoppingItems');
 const shoppingForm = document.getElementById('shoppingForm');
+const toggleShoppingForm = document.getElementById('toggleShoppingForm');
+const shoppingFormPanel = document.getElementById('shoppingFormPanel');
 const shoppingUrl = document.getElementById('shoppingUrl');
 const shoppingCategory = document.getElementById('shoppingCategory');
 const shoppingTitle = document.getElementById('shoppingTitle');
@@ -407,6 +409,9 @@ nextWeightPage?.addEventListener('click', () => {
 });
 openShopping?.addEventListener('click', () => { showView('shopping'); loadShoppingItems(); renderShoppingApp(); });
 backHomeFromShopping?.addEventListener('click', () => showView('home'));
+toggleShoppingForm?.addEventListener('click', () => {
+  toggleShoppingFormPanel();
+});
 shoppingForm?.addEventListener('submit', handleShoppingSubmit);
 shoppingSearch?.addEventListener('input', renderShoppingApp);
 shoppingCategoryFilter?.addEventListener('change', renderShoppingApp);
@@ -1270,6 +1275,27 @@ function renderFoodOption(option) {
 
 
 
+
+function toggleShoppingFormPanel(forceOpen) {
+  if (!shoppingFormPanel || !toggleShoppingForm) return;
+
+  const shouldOpen =
+    typeof forceOpen === 'boolean'
+      ? forceOpen
+      : !shoppingFormPanel.classList.contains('open');
+
+  shoppingFormPanel.classList.toggle('open', shouldOpen);
+  toggleShoppingForm.classList.toggle('open', shouldOpen);
+
+  toggleShoppingForm.innerHTML = shouldOpen
+    ? '<span>×</span><strong>Κλείσιμο φόρμας</strong>'
+    : '<span>＋</span><strong>Προσθήκη προϊόντος</strong>';
+
+  if (shouldOpen) {
+    setTimeout(() => shoppingUrl?.focus(), 180);
+  }
+}
+
 function loadShoppingItems() {
   try { shoppingItems = JSON.parse(localStorage.getItem(SHOPPING_STORAGE_KEY)) || []; }
   catch { shoppingItems = []; }
@@ -1297,6 +1323,7 @@ function handleShoppingSubmit(event) {
   shoppingForm.reset();
   shoppingPriority.value = 'Must have';
   shoppingStatus.value = 'Υπό σκέψη';
+  toggleShoppingFormPanel(false);
 }
 async function fetchShoppingMetadata() {
   const url = shoppingUrl?.value?.trim();

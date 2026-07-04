@@ -963,3 +963,63 @@ th {
 .shopping-status-rejected{background:#fee2e2;color:#991b1b;}
 @media(max-width:520px){.shopping-summary-grid{grid-template-columns:1fr}.shopping-item{grid-template-columns:74px 1fr;border-radius:22px}.shopping-thumb{width:74px;height:74px;border-radius:18px}.shopping-item-top{flex-direction:column}}
 @media(min-width:760px){.shopping-controls{grid-template-columns:1fr 260px}}
+
+
+/* Expandable shopping form */
+.add-product-toggle {
+  width: 100%;
+  border: 0;
+  border-radius: 22px;
+  padding: 16px;
+  margin: 0 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: white;
+  background: linear-gradient(135deg, var(--primary), var(--blue));
+  box-shadow: 0 14px 28px rgba(37,99,235,.20);
+  font-weight: 900;
+}
+
+.add-product-toggle span {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255,255,255,.18);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.add-product-toggle.open {
+  background: linear-gradient(135deg, #1e40af, #0f766e);
+}
+
+.shopping-form-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows .24s ease, opacity .18s ease, transform .18s ease;
+  opacity: 0;
+  transform: translateY(-4px);
+  overflow: hidden;
+}
+
+.shopping-form-panel.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transform: translateY(0);
+  margin-bottom: 14px;
+}
+
+.shopping-form-panel > form {
+  min-height: 0;
+  margin-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shopping-form-panel {
+    transition: none;
+  }
+}

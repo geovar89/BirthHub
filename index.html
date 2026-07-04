@@ -6,7 +6,7 @@
   <title>Birth App</title>
   <meta name="theme-color" content="#2563eb" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="styles.css?v=1.2.0" />
+  <link rel="stylesheet" href="styles.css?v=1.2.1" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
@@ -348,6 +348,12 @@
           <div class="shopping-summary-card"><span>Εκκρεμούν</span><strong id="shoppingPendingTotal">0€</strong><small id="shoppingPendingItems">0 προϊόντα</small></div>
         </div>
 
+        <button id="toggleShoppingForm" class="add-product-toggle" type="button">
+          <span>＋</span>
+          <strong>Προσθήκη προϊόντος</strong>
+        </button>
+
+        <div id="shoppingFormPanel" class="shopping-form-panel">
         <form id="shoppingForm" class="form-card shopping-form">
           <div class="form-grid">
             <label><span>Link προϊόντος</span><input id="shoppingUrl" type="url" placeholder="https://..." /></label>
@@ -374,6 +380,7 @@
           <button class="secondary-btn" id="fetchShoppingMeta" type="button">Ανάκτηση στοιχείων από link</button>
           <button class="primary-btn" type="submit">Προσθήκη προϊόντος</button>
         </form>
+        </div>
 
         <div class="shopping-controls">
           <input id="shoppingSearch" type="search" placeholder="Αναζήτηση προϊόντος..." />
@@ -399,7 +406,7 @@
     </main>
   </div>
 
-  <script src="config.js?v=1.2.0"></script>
-  <script src="app.js?v=1.2.0"></script>
+  <script src="config.js?v=1.2.1"></script>
+  <script src="app.js?v=1.2.1"></script>
 </body>
 </html>
