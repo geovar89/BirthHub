@@ -1047,172 +1047,25 @@ body.menu-open{overflow:hidden}
 /* Pregnancy Video Library */
 .videos .icon{background:#fee2e2}.video-summary-card{background:linear-gradient(135deg,rgba(37,99,235,.10),rgba(239,68,68,.10));border:1px solid rgba(37,99,235,.10);box-shadow:var(--shadow);border-radius:24px;padding:16px;margin-bottom:14px;display:flex;justify-content:space-between;gap:12px;align-items:center}.video-summary-card h3{margin:0;font-size:21px}.video-summary-card p{margin:6px 0 0;color:var(--muted);font-size:14px;line-height:1.4}.video-progress-pill{width:64px;height:64px;border-radius:999px;background:white;display:grid;place-items:center;color:var(--primary-dark);font-weight:900;box-shadow:0 10px 24px rgba(15,23,42,.08)}.video-category-tabs{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 12px;margin:4px -2px 8px;scrollbar-width:none}.video-category-tabs::-webkit-scrollbar{display:none}.video-category-tab{flex:0 0 auto;border:1px solid rgba(15,23,42,.08);background:white;color:var(--text);border-radius:999px;padding:10px 13px;font-weight:800;box-shadow:0 8px 18px rgba(15,23,42,.06)}.video-category-tab.active{background:linear-gradient(135deg,var(--primary),var(--blue));color:white;border-color:transparent}.video-player-card{background:rgba(255,255,255,.92);border:1px solid rgba(37,99,235,.08);border-radius:26px;padding:14px;box-shadow:var(--shadow);margin-bottom:14px}.video-frame-wrap{position:relative;width:100%;aspect-ratio:16/9;border-radius:20px;overflow:hidden;background:#0f172a}.video-frame-wrap iframe{position:absolute;inset:0;width:100%;height:100%}.video-info{padding:14px 4px 8px}.video-category-badge{display:inline-flex;padding:7px 10px;border-radius:999px;background:#eff6ff;color:#1e40af;font-size:12px;font-weight:900;margin-bottom:8px}.video-info h3{margin:0 0 6px;font-size:21px;line-height:1.15}.video-info p{margin:0;color:var(--muted);line-height:1.45;font-size:14px}.video-subtitle-note{margin-top:8px!important;color:#475569!important}.video-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}.video-actions button{border:0;border-radius:999px;padding:10px 12px;background:#eff6ff;color:#1e40af;font-weight:900}.video-actions span{color:var(--muted);font-size:13px;font-weight:800}.video-secondary-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.video-secondary-actions .small-btn.active{background:#dbeafe;color:#1e40af}.video-list-header{display:grid;gap:10px;margin:18px 0 12px}.video-list-header h3{margin:0}.video-list-header input{width:100%;border:1px solid rgba(15,23,42,.08);outline:0;padding:14px 15px;border-radius:18px;background:white;box-shadow:0 10px 24px rgba(15,23,42,.06)}.videos-list{display:grid;gap:10px}.video-list-item{width:100%;border:1px solid rgba(15,23,42,.08);background:white;border-radius:20px;padding:10px;display:grid;grid-template-columns:92px 1fr;gap:11px;text-align:left;box-shadow:0 10px 24px rgba(15,23,42,.06)}.video-list-item.active{border-color:rgba(37,99,235,.35);background:#eff6ff}.video-list-item img{width:92px;height:58px;object-fit:cover;border-radius:14px;background:#0f172a}.video-list-item strong{display:block;font-size:14px;line-height:1.25}.video-list-item span{display:block;color:var(--muted);font-size:12px;margin-top:4px}.video-list-item em{display:block;color:#1e40af;font-style:normal;font-size:12px;font-weight:800;margin-top:5px}@media(max-width:420px){.video-summary-card{align-items:flex-start}.video-actions button{padding:9px 10px;font-size:13px}.video-list-item{grid-template-columns:82px 1fr}.video-list-item img{width:82px;height:52px}}
 
-.maternity .icon{background:#dbeafe}
-/* Enhanced Maternity Leave Calculator */
-.maternity-form {
-  margin-bottom: 14px;
-}
-
-.maternity-results {
-  display: grid;
-  gap: 14px;
-}
-
-.maternity-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.maternity-result-card strong {
-  font-size: 16px;
-  line-height: 1.2;
-}
-
-.maternity-countdown-card {
-  color: white;
-  background:
-    radial-gradient(circle at top right, rgba(255,255,255,.18), transparent 34%),
-    linear-gradient(135deg, #1e3a8a, #2563eb 55%, #0891b2);
-  border-radius: 26px;
-  box-shadow: var(--shadow);
-  padding: 18px;
-}
-
-.maternity-countdown-card span {
-  display: block;
-  opacity: .8;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  margin-bottom: 8px;
-}
-
-.maternity-countdown-card strong {
-  display: block;
-  font-size: 24px;
-  line-height: 1.1;
-}
-
-.maternity-countdown-card p {
-  margin: 8px 0 0;
-  opacity: .88;
-  line-height: 1.4;
-}
-
-.maternity-timeline-card,
-.maternity-explanation-card,
-.maternity-info-card {
-  background: rgba(255,255,255,.92);
-  border: 1px solid rgba(37,99,235,.08);
-  border-radius: 26px;
-  box-shadow: var(--shadow);
-  padding: 16px;
-}
-
-.maternity-timeline-card h3,
-.maternity-explanation-card h3,
-.maternity-info-card h3 {
-  margin: 0 0 12px;
-}
-
-.maternity-timeline {
-  display: grid;
-  gap: 12px;
-}
-
-.maternity-timeline-item {
-  display: grid;
-  grid-template-columns: 42px 1fr;
-  gap: 12px;
-  align-items: flex-start;
-  position: relative;
-}
-
-.timeline-dot {
-  width: 42px;
-  height: 42px;
-  border-radius: 16px;
-  display: grid;
-  place-items: center;
-  background: #eff6ff;
-  font-size: 22px;
-}
-
-.maternity-timeline-item strong {
-  display: block;
-  font-size: 16px;
-}
-
-.maternity-timeline-item p,
-.maternity-explanation-card p,
-.maternity-info-card p {
-  margin: 5px 0 0;
-  color: var(--muted);
-  line-height: 1.45;
-  font-size: 14px;
-}
-
-.maternity-info-grid {
-  display: grid;
-  gap: 10px;
-}
-
-.maternity-info-grid article {
-  background: #f8fafc;
-  border: 1px solid rgba(15,23,42,.06);
-  border-radius: 18px;
-  padding: 12px;
-}
-
-.legal-note {
-  margin-top: 14px !important;
-  color: #92400e !important;
-  background: #fef3c7;
-  border-radius: 16px;
-  padding: 12px;
-}
-
-@media (max-width: 520px) {
-  .maternity-cards-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media print {
-  .menu-toggle,
-  .side-menu,
-  .side-menu-overlay,
-  .top-bar,
-  .cards-grid,
-  .section-title:not(.sticky-title),
-  .hero-dashboard {
-    display: none !important;
-  }
-
-  body {
-    background: white !important;
-  }
-
-  .view {
-    display: block !important;
-  }
-
-  #maternityView {
-    display: block !important;
-  }
-
-  .app-shell {
-    padding: 0 !important;
-  }
-
-  .maternity-countdown-card,
-  .maternity-timeline-card,
-  .maternity-explanation-card,
-  .maternity-info-card,
-  .shopping-summary-card {
-    box-shadow: none !important;
-    break-inside: avoid;
-  }
-}
+/* Maternity Leave Calculator */
+.maternity .icon { background:#dbeafe; }
+.maternity-form { margin-bottom:14px; }
+.maternity-results { display:grid; gap:14px; }
+.maternity-cards-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.maternity-result-card strong { font-size:16px; line-height:1.2; }
+.maternity-countdown-card { color:white; background:radial-gradient(circle at top right,rgba(255,255,255,.18),transparent 34%),linear-gradient(135deg,#1e3a8a,#2563eb 55%,#0891b2); border-radius:26px; box-shadow:var(--shadow); padding:18px; }
+.maternity-countdown-card span { display:block; opacity:.8; font-size:12px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px; }
+.maternity-countdown-card strong { display:block; font-size:24px; line-height:1.1; }
+.maternity-countdown-card p { margin:8px 0 0; opacity:.88; line-height:1.4; }
+.maternity-timeline-card,.maternity-explanation-card,.maternity-info-card{background:rgba(255,255,255,.92);border:1px solid rgba(37,99,235,.08);border-radius:26px;box-shadow:var(--shadow);padding:16px;}
+.maternity-timeline-card h3,.maternity-explanation-card h3,.maternity-info-card h3{margin:0 0 12px;}
+.maternity-timeline{display:grid;gap:12px;}
+.maternity-timeline-item{display:grid;grid-template-columns:42px 1fr;gap:12px;align-items:flex-start;}
+.timeline-dot{width:42px;height:42px;border-radius:16px;display:grid;place-items:center;background:#eff6ff;font-size:22px;}
+.maternity-timeline-item strong{display:block;font-size:16px;}
+.maternity-timeline-item p,.maternity-explanation-card p,.maternity-info-card p{margin:5px 0 0;color:var(--muted);line-height:1.45;font-size:14px;}
+.maternity-info-grid{display:grid;gap:10px;}
+.maternity-info-grid article{background:#f8fafc;border:1px solid rgba(15,23,42,.06);border-radius:18px;padding:12px;}
+.legal-note{margin-top:14px!important;color:#92400e!important;background:#fef3c7;border-radius:16px;padding:12px;}
+@media(max-width:520px){.maternity-cards-grid{grid-template-columns:1fr;}}
+@media print{.menu-toggle,.side-menu,.side-menu-overlay,.top-bar,.cards-grid,.hero-dashboard{display:none!important;}body{background:white!important;}.view{display:none!important;}#maternityView{display:block!important;}.app-shell{padding:0!important;}.maternity-countdown-card,.maternity-timeline-card,.maternity-explanation-card,.maternity-info-card,.shopping-summary-card{box-shadow:none!important;break-inside:avoid;}}

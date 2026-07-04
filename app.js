@@ -22,6 +22,17 @@ const videosList = document.getElementById('videosList');
 const videosProgress = document.getElementById('videosProgress');
 const videosWeekTitle = document.getElementById('videosWeekTitle');
 const videosWeekSubtitle = document.getElementById('videosWeekSubtitle');
+const maternityView = document.getElementById('maternityView');
+const openMaternity = document.getElementById('openMaternity');
+const backHomeFromMaternity = document.getElementById('backHomeFromMaternity');
+const printMaternity = document.getElementById('printMaternity');
+const calcMaternity = document.getElementById('calcMaternity');
+const eddInput = document.getElementById('eddInput');
+const actualBirthInput = document.getElementById('actualBirthInput');
+const annualLeaveBeforeDypa = document.getElementById('annualLeaveBeforeDypa');
+const equalLeaveMonths = document.getElementById('equalLeaveMonths');
+const parentalLeaveMonths = document.getElementById('parentalLeaveMonths');
+const maternityResults = document.getElementById('maternityResults');
 const homeView = document.getElementById('homeView');
 const examsView = document.getElementById('examsView');
 const weightView = document.getElementById('weightView');
@@ -402,10 +413,23 @@ document.querySelectorAll('[data-view]').forEach(item => {
     if (view === 'appointments') { loadAppointments(); renderAppointments(); }
     if (view === 'shopping') { loadShoppingItems(); renderShoppingApp(); }
     if (view === 'videos') renderVideoApp();
+    if (view === 'maternity') { prefillMaternityEdd(); calculateMaternityLeave(); }
   });
 });
 
 openVideos?.addEventListener('click', () => { showView('videos'); renderVideoApp(); });
+
+openMaternity?.addEventListener('click', () => {
+  showView('maternity');
+  prefillMaternityEdd();
+  calculateMaternityLeave();
+});
+backHomeFromMaternity?.addEventListener('click', () => showView('home'));
+calcMaternity?.addEventListener('click', calculateMaternityLeave);
+printMaternity?.addEventListener('click', () => window.print());
+[eddInput, actualBirthInput, annualLeaveBeforeDypa, equalLeaveMonths, parentalLeaveMonths].forEach(el => {
+  el?.addEventListener('change', calculateMaternityLeave);
+});
 backHomeFromVideos?.addEventListener('click', () => showView('home'));
 prevVideo?.addEventListener('click', () => moveVideo(-1));
 nextVideo?.addEventListener('click', () => moveVideo(1));
@@ -503,6 +527,7 @@ function showView(view) {
   nutritionView?.classList.toggle('active', view === 'nutrition');
   shoppingView?.classList.toggle('active', view === 'shopping');
   videosView?.classList.toggle('active', view === 'videos');
+  maternityView?.classList.toggle('active', view === 'maternity');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -1513,6 +1538,162 @@ function moveVideo(d){const vids=getFilteredVideos();if(!vids.length)return;curr
 function toggleVideoFlag(flag){const vids=getFilteredVideos();const v=vids[currentVideoIndex];if(!v)return;const p=getVideoProgress();p[v.id]=p[v.id]||{};p[v.id][flag]=!p[v.id][flag];saveVideoProgress(p);renderVideoApp()}
 function renderVideosList(vids){if(!videosList)return;const p=getVideoProgress();videosList.innerHTML=vids.map((v,i)=>{const s=p[v.id]||{};return `<button class="video-list-item ${i===currentVideoIndex?'active':''}" type="button" data-video-index="${i}"><img src="https://img.youtube.com/vi/${escapeAttribute(v.id)}/hqdefault.jpg" alt="" loading="lazy" /><div><strong>${escapeHtml(v.title)}</strong><span>${escapeHtml(v.channel)} · ${escapeHtml(v.category)}</span><em>${s.favorite?'⭐ ':''}${s.watched?'✓ Watched':'Not watched'}</em></div></button>`}).join('');videosList.querySelectorAll('[data-video-index]').forEach(b=>b.addEventListener('click',()=>{currentVideoIndex=Number(b.dataset.videoIndex);renderVideoApp();youtubePlayer?.scrollIntoView({behavior:'smooth',block:'center'})}))}
 
+
+function prefillMaternityEdd() {
+  if (!eddInput || eddInput.value) return;
+  const lmpDate = new Date('2026-01-12T12:00:00');
+  const edd = addDaysForMaternity(lmpDate, 280);
+  eddInput.value = toInputDateForMaternity(edd);
+}
+
+function calculateMaternityLeave() {
+  if (!maternityResults || !eddInput?.value) return;
+
+  const edd = parseMaternityInputDate(eddInput.value);
+  const actualBirth = actualBirthInput?.value ? parseMaternityInputDate(actualBirthInput.value) : null;
+
+  const pregnancyLeaveStart = addDaysForMaternity(edd, -56);
+  const expectedPregnancyLeaveEnd = addDaysForMaternity(edd, -1);
+  const birthDate = actualBirth || edd;
+
+  let unusedPregnancyDays = 0;
+  if (actualBirth && actualBirth.getTime() < edd.getTime()) {
+    unusedPregnancyDays = diffMaternityDays(actualBirth, edd);
+  }
+
+  const maternityLeaveStart = birthDate;
+  const maternityLeaveEnd = addDaysForMaternity(birthDate, 63 + unusedPregnancyDays);
+
+  const annualDays = Number(annualLeaveBeforeDypa?.value || 0);
+  const annualLeaveStart = annualDays > 0 ? addDaysForMaternity(maternityLeaveEnd, 1) : null;
+  const annualLeaveEnd = annualDays > 0 ? addDaysForMaternity(annualLeaveStart, annualDays - 1) : null;
+
+  const dypaStart = annualLeaveEnd ? addDaysForMaternity(annualLeaveEnd, 1) : addDaysForMaternity(maternityLeaveEnd, 1);
+  const dypaEnd = addMonthsForMaternity(dypaStart, 9);
+  dypaEnd.setDate(dypaEnd.getDate() - 1);
+
+  const equalMonths = Number(equalLeaveMonths?.value || 0);
+  const equalLeaveStart = equalMonths > 0 ? addDaysForMaternity(dypaEnd, 1) : null;
+  const equalLeaveEnd = equalMonths > 0 ? addDaysForMaternity(addMonthsForMaternity(equalLeaveStart, equalMonths), -1) : null;
+
+  const parentalMonths = Number(parentalLeaveMonths?.value || 0);
+  const parentalLeaveStart = equalLeaveEnd ? addDaysForMaternity(equalLeaveEnd, 1) : addDaysForMaternity(dypaEnd, 1);
+  const parentalLeaveEnd = parentalMonths > 0 ? addDaysForMaternity(addMonthsForMaternity(parentalLeaveStart, parentalMonths), -1) : null;
+
+  const finalReturnDate = parentalLeaveEnd
+    ? addDaysForMaternity(parentalLeaveEnd, 1)
+    : equalLeaveEnd
+      ? addDaysForMaternity(equalLeaveEnd, 1)
+      : addDaysForMaternity(dypaEnd, 1);
+
+  const today = new Date();
+  const daysUntilPregnancyLeave = diffMaternityDays(today, pregnancyLeaveStart);
+  const daysUntilEdd = diffMaternityDays(today, edd);
+
+  const cards = [
+    ['Έναρξη κυοφορίας', pregnancyLeaveStart, '56 ημέρες πριν την ΠΗΤ'],
+    ['ΠΗΤ', edd, actualBirth ? 'Αρχική πιθανή ημερομηνία' : 'Υπολογισμένη ημερομηνία τοκετού'],
+    ['Πραγματικός τοκετός', birthDate, actualBirth ? 'Δηλωμένη ημερομηνία τοκετού' : 'Ίδια με ΠΗΤ'],
+    ['Λήξη λοχείας', maternityLeaveEnd, unusedPregnancyDays ? `+${unusedPregnancyDays} ημέρες μεταφορά` : '63 ημέρες μετά'],
+    ['Έναρξη 9μήνου ΔΥΠΑ', dypaStart, annualDays ? `μετά από ${annualDays} ημέρες κανονικής` : 'αμέσως μετά τη λοχεία'],
+    ['Λήξη 9μήνου ΔΥΠΑ', dypaEnd, 'ενδεικτικά 9 μήνες'],
+    ['Επιστροφή / επόμενη φάση', finalReturnDate, 'με βάση τις επιλογές σου']
+  ];
+
+  const timelineItems = [
+    { title: 'Άδεια κυοφορίας', start: pregnancyLeaveStart, end: expectedPregnancyLeaveEnd, icon: '🤰' },
+    { title: 'Άδεια λοχείας', start: maternityLeaveStart, end: maternityLeaveEnd, icon: '👶' },
+    ...(annualDays ? [{ title: 'Κανονική άδεια', start: annualLeaveStart, end: annualLeaveEnd, icon: '🏖️' }] : []),
+    { title: '9μηνο ΔΥΠΑ', start: dypaStart, end: dypaEnd, icon: '🍼' },
+    ...(equalMonths ? [{ title: 'Ισόχρονη άδεια', start: equalLeaveStart, end: equalLeaveEnd, icon: '⏳' }] : []),
+    ...(parentalMonths ? [{ title: 'Γονική άδεια', start: parentalLeaveStart, end: parentalLeaveEnd, icon: '👪' }] : [])
+  ];
+
+  maternityResults.innerHTML = `
+    <div class="maternity-countdown-card">
+      <div>
+        <span>Countdown</span>
+        <strong>${daysUntilEdd >= 0 ? daysUntilEdd : 0} ημέρες μέχρι την ΠΗΤ</strong>
+        <p>${daysUntilPregnancyLeave >= 0 ? `${daysUntilPregnancyLeave} ημέρες μέχρι την έναρξη άδειας κυοφορίας` : 'Η άδεια κυοφορίας έχει ήδη ξεκινήσει ή παρέλθει.'}</p>
+      </div>
+    </div>
+
+    <div class="maternity-cards-grid">
+      ${cards.map(([title, date, note]) => `
+        <div class="shopping-summary-card maternity-result-card">
+          <span>${escapeHtml(title)}</span>
+          <strong>${formatMaternityDateLong(date)}</strong>
+          <small>${escapeHtml(note)}</small>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="maternity-timeline-card">
+      <h3>Timeline</h3>
+      <div class="maternity-timeline">
+        ${timelineItems.map(item => `
+          <div class="maternity-timeline-item">
+            <div class="timeline-dot">${item.icon}</div>
+            <div>
+              <strong>${escapeHtml(item.title)}</strong>
+              <p>${formatMaternityDateLong(item.start)} – ${formatMaternityDateLong(item.end)}</p>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="maternity-explanation-card">
+      <h3>Ανάλυση</h3>
+      <p><strong>Άδεια κυοφορίας:</strong> ${formatMaternityDateLong(pregnancyLeaveStart)} έως ${formatMaternityDateLong(expectedPregnancyLeaveEnd)}.</p>
+      <p><strong>Άδεια λοχείας:</strong> ${formatMaternityDateLong(maternityLeaveStart)} έως ${formatMaternityDateLong(maternityLeaveEnd)}.</p>
+      ${unusedPregnancyDays ? `<p><strong>Πρόωρος τοκετός:</strong> ${unusedPregnancyDays} ημέρες μεταφέρθηκαν από την κυοφορία στη λοχεία.</p>` : ''}
+      ${annualDays ? `<p><strong>Κανονική άδεια:</strong> ${annualDays} ημέρες πριν την έναρξη του 9μήνου ΔΥΠΑ.</p>` : ''}
+      ${equalMonths ? `<p><strong>Ισόχρονη άδεια:</strong> υπολογίστηκε ως ${String(equalMonths).replace('.', ',')} μήνες μετά το 9μηνο.</p>` : ''}
+      ${parentalMonths ? `<p><strong>Γονική άδεια:</strong> υπολογίστηκε ως ${parentalMonths} μήνες μετά την προηγούμενη φάση.</p>` : ''}
+    </div>
+  `;
+}
+
+function parseMaternityInputDate(value) {
+  return new Date(`${value}T12:00:00`);
+}
+
+function toInputDateForMaternity(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function addDaysForMaternity(date, days) {
+  const copy = new Date(date);
+  copy.setDate(copy.getDate() + days);
+  return copy;
+}
+
+function addMonthsForMaternity(date, months) {
+  const copy = new Date(date);
+  const wholeMonths = Math.floor(months);
+  const extraDays = Math.round((months - wholeMonths) * 30);
+  copy.setMonth(copy.getMonth() + wholeMonths);
+  copy.setDate(copy.getDate() + extraDays);
+  return copy;
+}
+
+function diffMaternityDays(from, to) {
+  const start = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  const end = new Date(to.getFullYear(), to.getMonth(), to.getDate());
+  return Math.ceil((end - start) / 86400000);
+}
+
+function formatMaternityDateLong(date) {
+  if (!date || Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('el-GR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  });
+}
+
+
 function renderDashboard() {
   try { renderDashboardPregnancyInfo(); } catch (e) { console.error(e); }
   try { renderDashboardWeight(); } catch (e) { console.error(e); }
@@ -1837,199 +2018,3 @@ document.addEventListener('DOMContentLoaded', () => {
 window.deleteWeightEntry = typeof deleteWeightEntry !== 'undefined' ? deleteWeightEntry : window.deleteWeightEntry;
 window.deleteAppointment = typeof deleteAppointment !== 'undefined' ? deleteAppointment : window.deleteAppointment;
 window.toggleAppointmentStatus = typeof toggleAppointmentStatus !== 'undefined' ? toggleAppointmentStatus : window.toggleAppointmentStatus;
-
-const maternityView=document.getElementById('maternityView');const openMaternity=document.getElementById('openMaternity');const backHomeFromMaternity=document.getElementById('backHomeFromMaternity');const calcMaternity=document.getElementById('calcMaternity');const eddInput=document.getElementById('eddInput');const maternityResults=document.getElementById('maternityResults');openMaternity?.addEventListener('click',()=>showView('maternity'));backHomeFromMaternity?.addEventListener('click',()=>showView('home'));calcMaternity?.addEventListener('click',()=>{if(!eddInput.value)return;const e=new Date(eddInput.value);const p=new Date(e);p.setDate(p.getDate()-56);const l=new Date(e);l.setDate(l.getDate()+63);const d=new Date(l);d.setMonth(d.getMonth()+9);maternityResults.innerHTML=`<div class='shopping-summary-card'><span>Έναρξη κυοφορίας</span><strong>${p.toLocaleDateString('el-GR')}</strong></div><div class='shopping-summary-card'><span>ΠΗΤ</span><strong>${e.toLocaleDateString('el-GR')}</strong></div><div class='shopping-summary-card'><span>Λήξη λοχείας</span><strong>${l.toLocaleDateString('el-GR')}</strong></div><div class='shopping-summary-card'><span>Λήξη 9μήνου</span><strong>${d.toLocaleDateString('el-GR')}</strong></div>`});const __sv=showView;showView=function(v){__sv(v);maternityView?.classList.toggle('active',v==='maternity');}
-
-
-/* Enhanced Maternity Leave Calculator */
-(function initEnhancedMaternityCalculator(){
-  const maternityView = document.getElementById('maternityView');
-  const openMaternity = document.getElementById('openMaternity');
-  const backHomeFromMaternity = document.getElementById('backHomeFromMaternity');
-  const calcMaternity = document.getElementById('calcMaternity');
-  const printMaternity = document.getElementById('printMaternity');
-  const eddInput = document.getElementById('eddInput');
-  const actualBirthInput = document.getElementById('actualBirthInput');
-  const annualLeaveBeforeDypa = document.getElementById('annualLeaveBeforeDypa');
-  const equalLeaveMonths = document.getElementById('equalLeaveMonths');
-  const parentalLeaveMonths = document.getElementById('parentalLeaveMonths');
-  const maternityResults = document.getElementById('maternityResults');
-
-  openMaternity?.addEventListener('click', () => {
-    showView('maternity');
-    prefillMaternityEdd();
-    calculateMaternityLeave();
-  });
-
-  backHomeFromMaternity?.addEventListener('click', () => showView('home'));
-  calcMaternity?.addEventListener('click', calculateMaternityLeave);
-  printMaternity?.addEventListener('click', () => window.print());
-
-  [eddInput, actualBirthInput, annualLeaveBeforeDypa, equalLeaveMonths, parentalLeaveMonths].forEach(el => {
-    el?.addEventListener('change', calculateMaternityLeave);
-  });
-
-  const previousShowView = window.showView || showView;
-  window.showView = function(view) {
-    previousShowView(view);
-    maternityView?.classList.toggle('active', view === 'maternity');
-  };
-
-  function prefillMaternityEdd() {
-    if (!eddInput || eddInput.value) return;
-
-    const lmpDate = new Date('2026-01-12T12:00:00');
-    const edd = addDays(lmpDate, 280);
-    eddInput.value = toInputDate(edd);
-  }
-
-  function calculateMaternityLeave() {
-    if (!maternityResults || !eddInput?.value) return;
-
-    const edd = parseDateInput(eddInput.value);
-    const actualBirth = actualBirthInput?.value ? parseDateInput(actualBirthInput.value) : null;
-
-    const pregnancyLeaveStart = addDays(edd, -56);
-    const expectedPregnancyLeaveEnd = addDays(edd, -1);
-
-    const birthDate = actualBirth || edd;
-
-    let unusedPregnancyDays = 0;
-    if (actualBirth && actualBirth.getTime() < edd.getTime()) {
-      unusedPregnancyDays = diffDays(actualBirth, edd);
-    }
-
-    const maternityLeaveStart = birthDate;
-    const maternityLeaveEnd = addDays(birthDate, 63 + unusedPregnancyDays);
-
-    const annualDays = Number(annualLeaveBeforeDypa?.value || 0);
-    const annualLeaveStart = annualDays > 0 ? addDays(maternityLeaveEnd, 1) : null;
-    const annualLeaveEnd = annualDays > 0 ? addDays(annualLeaveStart, annualDays - 1) : null;
-
-    const dypaStart = annualLeaveEnd ? addDays(annualLeaveEnd, 1) : addDays(maternityLeaveEnd, 1);
-    const dypaEnd = addMonths(dypaStart, 9);
-    dypaEnd.setDate(dypaEnd.getDate() - 1);
-
-    const equalMonths = Number(equalLeaveMonths?.value || 0);
-    const equalLeaveStart = equalMonths > 0 ? addDays(dypaEnd, 1) : null;
-    const equalLeaveEnd = equalMonths > 0 ? addDays(addMonths(equalLeaveStart, equalMonths), -1) : null;
-
-    const parentalMonths = Number(parentalLeaveMonths?.value || 0);
-    const parentalLeaveStart = equalLeaveEnd ? addDays(equalLeaveEnd, 1) : addDays(dypaEnd, 1);
-    const parentalLeaveEnd = parentalMonths > 0 ? addDays(addMonths(parentalLeaveStart, parentalMonths), -1) : null;
-
-    const finalReturnDate = parentalLeaveEnd
-      ? addDays(parentalLeaveEnd, 1)
-      : equalLeaveEnd
-        ? addDays(equalLeaveEnd, 1)
-        : addDays(dypaEnd, 1);
-
-    const today = new Date();
-    const daysUntilPregnancyLeave = diffDays(today, pregnancyLeaveStart);
-    const daysUntilEdd = diffDays(today, edd);
-
-    const cards = [
-      ['Έναρξη κυοφορίας', pregnancyLeaveStart, '56 ημέρες πριν την ΠΗΤ'],
-      ['ΠΗΤ', edd, actualBirth ? 'Αρχική πιθανή ημερομηνία' : 'Υπολογισμένη ημερομηνία τοκετού'],
-      ['Πραγματικός τοκετός', birthDate, actualBirth ? 'Δηλωμένη ημερομηνία τοκετού' : 'Ίδια με ΠΗΤ'],
-      ['Λήξη λοχείας', maternityLeaveEnd, unusedPregnancyDays ? `+${unusedPregnancyDays} ημέρες μεταφορά` : '63 ημέρες μετά'],
-      ['Έναρξη 9μήνου ΔΥΠΑ', dypaStart, annualDays ? `μετά από ${annualDays} ημέρες κανονικής` : 'αμέσως μετά τη λοχεία'],
-      ['Λήξη 9μήνου ΔΥΠΑ', dypaEnd, 'ενδεικτικά 9 μήνες'],
-      ['Επιστροφή / επόμενη φάση', finalReturnDate, 'με βάση τις επιλογές σου']
-    ];
-
-    const timelineItems = [
-      { title: 'Άδεια κυοφορίας', start: pregnancyLeaveStart, end: expectedPregnancyLeaveEnd, icon: '🤰' },
-      { title: 'Άδεια λοχείας', start: maternityLeaveStart, end: maternityLeaveEnd, icon: '👶' },
-      ...(annualDays ? [{ title: 'Κανονική άδεια', start: annualLeaveStart, end: annualLeaveEnd, icon: '🏖️' }] : []),
-      { title: '9μηνο ΔΥΠΑ', start: dypaStart, end: dypaEnd, icon: '🍼' },
-      ...(equalMonths ? [{ title: 'Ισόχρονη άδεια', start: equalLeaveStart, end: equalLeaveEnd, icon: '⏳' }] : []),
-      ...(parentalMonths ? [{ title: 'Γονική άδεια', start: parentalLeaveStart, end: parentalLeaveEnd, icon: '👪' }] : [])
-    ];
-
-    maternityResults.innerHTML = `
-      <div class="maternity-countdown-card">
-        <div>
-          <span>Countdown</span>
-          <strong>${daysUntilEdd >= 0 ? daysUntilEdd : 0} ημέρες μέχρι την ΠΗΤ</strong>
-          <p>${daysUntilPregnancyLeave >= 0 ? `${daysUntilPregnancyLeave} ημέρες μέχρι την έναρξη άδειας κυοφορίας` : 'Η άδεια κυοφορίας έχει ήδη ξεκινήσει ή παρέλθει.'}</p>
-        </div>
-      </div>
-
-      <div class="maternity-cards-grid">
-        ${cards.map(([title, date, note]) => `
-          <div class="shopping-summary-card maternity-result-card">
-            <span>${escapeHtml(title)}</span>
-            <strong>${formatDateLong(date)}</strong>
-            <small>${escapeHtml(note)}</small>
-          </div>
-        `).join('')}
-      </div>
-
-      <div class="maternity-timeline-card">
-        <h3>Timeline</h3>
-        <div class="maternity-timeline">
-          ${timelineItems.map(item => `
-            <div class="maternity-timeline-item">
-              <div class="timeline-dot">${item.icon}</div>
-              <div>
-                <strong>${escapeHtml(item.title)}</strong>
-                <p>${formatDateLong(item.start)} – ${formatDateLong(item.end)}</p>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-
-      <div class="maternity-explanation-card">
-        <h3>Ανάλυση</h3>
-        <p><strong>Άδεια κυοφορίας:</strong> ${formatDateLong(pregnancyLeaveStart)} έως ${formatDateLong(expectedPregnancyLeaveEnd)}.</p>
-        <p><strong>Άδεια λοχείας:</strong> ${formatDateLong(maternityLeaveStart)} έως ${formatDateLong(maternityLeaveEnd)}.</p>
-        ${unusedPregnancyDays ? `<p><strong>Πρόωρος τοκετός:</strong> ${unusedPregnancyDays} ημέρες μεταφέρθηκαν από την κυοφορία στη λοχεία.</p>` : ''}
-        ${annualDays ? `<p><strong>Κανονική άδεια:</strong> ${annualDays} ημέρες πριν την έναρξη του 9μήνου ΔΥΠΑ.</p>` : ''}
-        ${equalMonths ? `<p><strong>Ισόχρονη άδεια:</strong> υπολογίστηκε ως ${String(equalMonths).replace('.', ',')} μήνες μετά το 9μηνο.</p>` : ''}
-        ${parentalMonths ? `<p><strong>Γονική άδεια:</strong> υπολογίστηκε ως ${parentalMonths} μήνες μετά την προηγούμενη φάση.</p>` : ''}
-      </div>
-    `;
-  }
-
-  function parseDateInput(value) {
-    return new Date(`${value}T12:00:00`);
-  }
-
-  function toInputDate(date) {
-    return date.toISOString().slice(0, 10);
-  }
-
-  function addDays(date, days) {
-    const copy = new Date(date);
-    copy.setDate(copy.getDate() + days);
-    return copy;
-  }
-
-  function addMonths(date, months) {
-    const copy = new Date(date);
-    const wholeMonths = Math.floor(months);
-    const extraDays = Math.round((months - wholeMonths) * 30);
-    copy.setMonth(copy.getMonth() + wholeMonths);
-    copy.setDate(copy.getDate() + extraDays);
-    return copy;
-  }
-
-  function diffDays(from, to) {
-    const start = new Date(from.getFullYear(), from.getMonth(), from.getDate());
-    const end = new Date(to.getFullYear(), to.getMonth(), to.getDate());
-    return Math.ceil((end - start) / 86400000);
-  }
-
-  function formatDateLong(date) {
-    if (!date || Number.isNaN(date.getTime())) return '—';
-    return date.toLocaleDateString('el-GR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric'
-    });
-  }
-
-  prefillMaternityEdd();
-})();
