@@ -71,6 +71,13 @@ const clearWeightEntries = document.getElementById('clearWeightEntries');
 const weightChartCanvas = document.getElementById('weightChart');
 
 const appointmentForm = document.getElementById('appointmentForm');
+const toggleAppointmentForm = document.getElementById('toggleAppointmentForm');
+const appointmentFormPanel = document.getElementById('appointmentFormPanel');
+const prevAppointmentMonth = document.getElementById('prevAppointmentMonth');
+const nextAppointmentMonth = document.getElementById('nextAppointmentMonth');
+const appointmentCalendarTitle = document.getElementById('appointmentCalendarTitle');
+const appointmentsCalendar = document.getElementById('appointmentsCalendar');
+const calendarDayAppointments = document.getElementById('calendarDayAppointments');
 const appointmentDate = document.getElementById('appointmentDate');
 const appointmentTime = document.getElementById('appointmentTime');
 const appointmentTitle = document.getElementById('appointmentTitle');
@@ -129,6 +136,8 @@ let currentVideoIndex = 0;
 let exams = [];
 let weightEntries = [];
 let appointments = [];
+let appointmentCalendarMonth = new Date();
+let selectedAppointmentDate = '';
 let weightChart = null;
 let currentWeightPage = 1;
 let activeMealKey = 'breakfast';
@@ -408,10 +417,10 @@ document.querySelectorAll('[data-view]').forEach(item => {
     closeMenu();
     showView(view);
     if (view === 'exams' && !exams.length) await loadFromConfiguredExcel();
-    if (view === 'weight') { const loadedFromSheet = await loadWeightEntriesFromSheet(); if (!loadedFromSheet) importPregnancyWeightsIfNeeded(); renderWeightApp(); renderDashboardWeight(); }
+    if (view === 'weight') { const loadedFromSheet = await withAppLoader('Φόρτωση βάρους...', () => loadWeightEntriesFromSheet()); if (!loadedFromSheet) importPregnancyWeightsIfNeeded(); renderWeightApp(); renderDashboardWeight(); }
     if (view === 'nutrition') renderNutritionApp();
-    if (view === 'appointments') { await loadAppointmentsFromSheet(); renderAppointments(); }
-    if (view === 'shopping') { await loadShoppingItemsFromSheet(); renderShoppingApp(); }
+    if (view === 'appointments') { await withAppLoader('Φόρτωση ραντεβού...', () => loadAppointmentsFromSheet()); renderAppointments(); }
+    if (view === 'shopping') { await withAppLoader('Φόρτωση shopping list...', () => loadShoppingItemsFromSheet()); renderShoppingApp(); }
     if (view === 'videos') renderVideoApp();
     if (view === 'maternity') { prefillMaternityEdd(); calculateMaternityLeave(); }
   });
@@ -438,6 +447,7 @@ watchedVideo?.addEventListener('click', () => toggleVideoFlag('watched'));
 videoSearch?.addEventListener('input', () => { currentVideoIndex = 0; renderVideoApp(); });
 resetVideoProgress?.addEventListener('click', () => { if(confirm('Να διαγραφεί η πρόοδος watched/favorites;')){ localStorage.removeItem(VIDEO_PROGRESS_STORAGE_KEY); renderVideoApp(); }});
 
+
 openExams?.addEventListener('click', async () => {
   showView('exams');
   if (!exams.length) await loadFromConfiguredExcel();
@@ -445,7 +455,7 @@ openExams?.addEventListener('click', async () => {
 
 openWeight?.addEventListener('click', async () => {
   showView('weight');
-  const loadedFromSheet = await loadWeightEntriesFromSheet();
+  const loadedFromSheet = await withAppLoader('Φόρτωση βάρους...', () => loadWeightEntriesFromSheet());
   if (!loadedFromSheet) importPregnancyWeightsIfNeeded();
   renderWeightApp();
   renderDashboardWeight();
@@ -460,7 +470,7 @@ backHome?.addEventListener('click', () => showView('home'));
 backHomeFromWeight?.addEventListener('click', () => showView('home'));
 openAppointments?.addEventListener('click', async () => {
   showView('appointments');
-  await loadAppointmentsFromSheet();
+  await withAppLoader('Φόρτωση ραντεβού...', () => loadAppointmentsFromSheet());
   renderAppointments();
 });
 backHomeFromAppointments?.addEventListener('click', () => showView('home'));
@@ -470,6 +480,15 @@ searchInput?.addEventListener('input', renderExams);
 fileInput?.addEventListener('change', handleFileUpload);
 
 weightForm?.addEventListener('submit', handleWeightSubmit);
+toggleAppointmentForm?.addEventListener('click', () => toggleAppointmentFormPanel());
+prevAppointmentMonth?.addEventListener('click', () => {
+  appointmentCalendarMonth.setMonth(appointmentCalendarMonth.getMonth() - 1);
+  renderAppointmentsCalendar();
+});
+nextAppointmentMonth?.addEventListener('click', () => {
+  appointmentCalendarMonth.setMonth(appointmentCalendarMonth.getMonth() + 1);
+  renderAppointmentsCalendar();
+});
 appointmentForm?.addEventListener('submit', handleAppointmentSubmit);
 appointmentSearch?.addEventListener('input', renderAppointments);
 clearAppointments?.addEventListener('click', clearAllAppointments);
@@ -487,7 +506,7 @@ nextWeightPage?.addEventListener('click', () => {
     renderWeightApp();
   }
 });
-openShopping?.addEventListener('click', async () => { showView('shopping'); await loadShoppingItemsFromSheet(); renderShoppingApp(); });
+openShopping?.addEventListener('click', async () => { showView('shopping'); await withAppLoader('Φόρτωση shopping list...', () => loadShoppingItemsFromSheet()); renderShoppingApp(); });
 backHomeFromShopping?.addEventListener('click', () => showView('home'));
 toggleShoppingForm?.addEventListener('click', () => {
   toggleShoppingFormPanel();
@@ -544,6 +563,19 @@ async function loadFromConfiguredExcel() {
   uploadCard.style.display = 'none';
   statusEl.textContent = 'Φόρτωση δεδομένων...';
 
+  if (/script\.google\.com\/macros\/s\//.test(excelUrl)) {
+    try {
+      const rows = await withAppLoader('Φόρτωση εξετάσεων...', () => apiGetSheet(getExamsSheetName()));
+      setExamsFromRows(rows);
+      return;
+    } catch (error) {
+      uploadCard.style.display = 'block';
+      statusEl.textContent = 'Δεν μπόρεσα να διαβάσω τις εξετάσεις από το Apps Script.';
+      console.error(error);
+      return;
+    }
+  }
+
   try {
     if (isAppsScriptUrl(excelUrl)) {
       const rows = await loadAppsScriptRows(excelUrl);
@@ -552,7 +584,13 @@ async function loadFromConfiguredExcel() {
     }
 
     if (isGoogleSheetUrl(excelUrl)) {
-      const rows = await loadGoogleSheetRows(excelUrl);
+      if (/script\.google\.com\/macros\/s\//.test(excelUrl)) {
+        const rows = await withAppLoader('Φόρτωση εξετάσεων...', () => apiGetSheet(getExamsSheetName()));
+        setExamsFromRows(rows);
+        return;
+      }
+
+      const rows = await withAppLoader('Φόρτωση εξετάσεων...', () => loadGoogleSheetRows(excelUrl));
       setExamsFromRows(rows);
       return;
     }
@@ -942,10 +980,39 @@ function renderAttachment(url, index) {
 
 
 
+
+function showAppLoader(text = 'Φόρτωση...') {
+  const loader = document.getElementById('appLoader');
+  const label = document.getElementById('appLoaderText');
+  if (label) label.textContent = text;
+  loader?.classList.add('open');
+  loader?.setAttribute('aria-hidden', 'false');
+}
+
+function hideAppLoader() {
+  const loader = document.getElementById('appLoader');
+  loader?.classList.remove('open');
+  loader?.setAttribute('aria-hidden', 'true');
+}
+
+async function withAppLoader(text, task) {
+  showAppLoader(text);
+  try {
+    return await task();
+  } finally {
+    hideAppLoader();
+  }
+}
+
+function getExamsSheetName() {
+  return window.BIRTH_APP_CONFIG?.EXAMS_SHEET_NAME || 'Exams';
+}
+
+
 function getBirthHubApiUrl() {
   return window.BIRTH_APP_CONFIG?.BIRTHHUB_API_URL?.trim()
     || window.BIRTH_APP_CONFIG?.EXCEL_URL?.trim()
-    || '';
+    || 'https://script.google.com/macros/s/AKfycbxwT3q6lRpsO5EFg3RVNPp2ujIasaT_P9jVRczPldXYU_hj5JTd1hUH-Oql72vwKkys/exec';
 }
 
 function getWeightSheetName() {
@@ -1008,14 +1075,14 @@ async function handleWeightSubmit(event) {
   };
 
   try {
-    await apiInsertRow(getWeightSheetName(), {
+    await withAppLoader('Αποθήκευση βάρους...', () => apiInsertRow(getWeightSheetName(), {
       'Ημερομηνία': now.toISOString().slice(0, 10),
       'Εβδομάδα': pregnancyLabel,
       'Βάρος': String(weight).replace('.', ','),
       'Σχόλια': ''
-    });
+    }));
 
-    await loadWeightEntriesFromSheet();
+    await withAppLoader('Φόρτωση βάρους...', () => loadWeightEntriesFromSheet());
   } catch (error) {
     console.error('Weight cloud insert failed, falling back to localStorage', error);
     weightEntries.push(entry);
@@ -1157,7 +1224,7 @@ async function deleteWeightEntry(id) {
   try {
     if (entry?.rowId) {
       await apiDeleteRow(getWeightSheetName(), entry.rowId);
-      await loadWeightEntriesFromSheet();
+      await withAppLoader('Φόρτωση βάρους...', () => loadWeightEntriesFromSheet());
     } else {
       weightEntries = weightEntries.filter(item => item.id !== id);
       saveWeightEntries();
@@ -1619,8 +1686,8 @@ async function handleShoppingSubmit(event) {
   };
 
   try {
-    await apiInsertRow(getShoppingSheetName(), toShoppingSheetRow(item));
-    await loadShoppingItemsFromSheet();
+    await withAppLoader('Αποθήκευση προϊόντος...', () => apiInsertRow(getShoppingSheetName(), toShoppingSheetRow(item)));
+    await withAppLoader('Φόρτωση shopping list...', () => loadShoppingItemsFromSheet());
   } catch (error) {
     console.error('Shopping cloud insert failed, falling back to localStorage', error);
     shoppingItems.unshift(item);
@@ -1670,7 +1737,7 @@ async function deleteShoppingItem(id) {
   try {
     if (item?.rowId) {
       await apiDeleteRow(getShoppingSheetName(), item.rowId);
-      await loadShoppingItemsFromSheet();
+      await withAppLoader('Φόρτωση shopping list...', () => loadShoppingItemsFromSheet());
     } else {
       shoppingItems = shoppingItems.filter(entry => entry.id !== id);
       saveShoppingItems();
@@ -1693,7 +1760,7 @@ async function toggleShoppingStatus(id) {
   try {
     if (item.rowId) {
       await apiUpdateRow(getShoppingSheetName(), item.rowId, { 'Status': nextStatus });
-      await loadShoppingItemsFromSheet();
+      await withAppLoader('Φόρτωση shopping list...', () => loadShoppingItemsFromSheet());
     } else {
       shoppingItems = shoppingItems.map(entry =>
         entry.id === id ? { ...entry, status: nextStatus } : entry
@@ -1946,6 +2013,115 @@ function formatMaternityDateLong(date) {
 }
 
 
+
+function loadMamaChatHistory() {
+  try {
+    mamaChatHistory = JSON.parse(localStorage.getItem(MAMA_CHAT_STORAGE_KEY)) || [];
+  } catch {
+    mamaChatHistory = [];
+  }
+
+  if (!mamaChatHistory.length) {
+    mamaChatHistory = [{
+      role: 'assistant',
+      content: 'Γεια σου 🩵 Είμαι εδώ για ήρεμες απαντήσεις, οργάνωση και καθημερινή υποστήριξη. Πώς μπορώ να βοηθήσω σήμερα;'
+    }];
+  }
+}
+
+function saveMamaChatHistory() {
+  localStorage.setItem(MAMA_CHAT_STORAGE_KEY, JSON.stringify(mamaChatHistory));
+}
+
+function renderMamaChat() {
+  if (!mamaChatMessages) return;
+
+  mamaChatMessages.innerHTML = mamaChatHistory.map(message => `
+    <div class="chat-message ${message.role === 'user' ? 'user' : 'assistant'}">
+      <div>${escapeHtml(message.content)}</div>
+    </div>
+  `).join('');
+
+  mamaChatMessages.scrollTop = mamaChatMessages.scrollHeight;
+}
+
+async function handleMamaChatSubmit(event) {
+  event.preventDefault();
+
+  const text = mamaChatInput.value.trim();
+  if (!text) return;
+
+  mamaChatHistory.push({ role: 'user', content: text });
+  mamaChatInput.value = '';
+  renderMamaChat();
+  saveMamaChatHistory();
+
+  mamaChatHistory.push({ role: 'assistant', content: 'Γράφω απάντηση...' });
+  renderMamaChat();
+
+  try {
+    const reply = await callMamaChatAgent(text);
+    mamaChatHistory[mamaChatHistory.length - 1] = { role: 'assistant', content: reply };
+  } catch (error) {
+    console.error('Mama Chat API failed', error);
+    mamaChatHistory[mamaChatHistory.length - 1] = { role: 'assistant', content: getMamaChatFallback(text) };
+  }
+
+  saveMamaChatHistory();
+  renderMamaChat();
+}
+
+async function callMamaChatAgent(userMessage) {
+  const endpoint =
+    window.BIRTH_APP_CONFIG?.MAMA_CHAT_API_URL?.trim() ||
+    window.BIRTH_APP_CONFIG?.BIRTHHUB_API_URL?.trim();
+
+  if (!endpoint) throw new Error('MAMA_CHAT_API_URL missing');
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({
+      action: 'mamaChat',
+      message: userMessage,
+      history: mamaChatHistory
+        .filter(m => m.content !== 'Γράφω απάντηση...')
+        .slice(-12),
+      context: {
+        app: 'BirthHub',
+        lmp: '2026-01-12',
+        language: 'el-GR'
+      }
+    })
+  });
+
+  if (!response.ok) throw new Error(`Mama Chat HTTP ${response.status}`);
+
+  const data = await response.json();
+  if (data.success === false) throw new Error(data.error || 'Mama Chat backend failed');
+
+  return data.reply || data.message || data.content || 'Δεν μπόρεσα να βρω απάντηση.';
+}
+
+function getMamaChatFallback(text) {
+  const lower = text.toLowerCase();
+
+  if (lower.includes('πονά') || lower.includes('αιμορ') || lower.includes('ζαλά') || lower.includes('πίεση')) {
+    return 'Αυτό που περιγράφεις μπορεί να χρειάζεται άμεση αξιολόγηση. Καλύτερα επικοινώνησε τώρα με τον γιατρό ή το μαιευτήριο, ειδικά αν υπάρχει πόνος, αιμορραγία, έντονη ζάλη ή υψηλή πίεση.';
+  }
+
+  if (lower.includes('βαλίτσα') || lower.includes('μαιευτήριο')) {
+    return 'Καλή ιδέα να το οργανώσεις σε λίστα: έγγραφα/εξετάσεις, ρούχα μαμάς, είδη υγιεινής, φορτιστή, ρούχα μωρού, πάνες και κάτι για τον συνοδό.';
+  }
+
+  if (lower.includes('άγχος') || lower.includes('φοβάμαι')) {
+    return 'Είναι πολύ φυσιολογικό να υπάρχει άγχος. Πάρε μια ανάσα, γράψε τι σε ανησυχεί σε 2-3 bullets και κράτα μόνο το επόμενο μικρό βήμα. Αν το άγχος γίνεται έντονο ή καθημερινό, αξίζει να το συζητήσεις με τον γιατρό/μαία.';
+  }
+
+  return 'Μπορώ να βοηθήσω με οργάνωση, λίστες, ήρεμες εξηγήσεις και ερωτήσεις για το τι να ρωτήσεις τον γιατρό. Για ιατρική απόφαση ή έντονο σύμπτωμα, μίλησε με τον γιατρό σου.';
+}
+
+
 function renderDashboard() {
   try { renderDashboardPregnancyInfo(); } catch (e) { console.error(e); }
   try { renderDashboardWeight(); } catch (e) { console.error(e); }
@@ -2078,6 +2254,134 @@ function renderDashboardExams() {
 }
 
 
+
+
+
+function toggleAppointmentFormPanel(forceOpen) {
+  if (!appointmentFormPanel || !toggleAppointmentForm) return;
+
+  const shouldOpen =
+    typeof forceOpen === 'boolean'
+      ? forceOpen
+      : !appointmentFormPanel.classList.contains('open');
+
+  appointmentFormPanel.classList.toggle('open', shouldOpen);
+  toggleAppointmentForm.classList.toggle('open', shouldOpen);
+  toggleAppointmentForm.innerHTML = shouldOpen
+    ? '<span>×</span><strong>Κλείσιμο φόρμας</strong>'
+    : '<span>＋</span><strong>Προσθήκη ραντεβού</strong>';
+
+  if (shouldOpen) {
+    setTimeout(() => appointmentDate?.focus(), 180);
+  }
+}
+
+function renderAppointmentsCalendar() {
+  if (!appointmentsCalendar || !appointmentCalendarTitle) return;
+
+  const year = appointmentCalendarMonth.getFullYear();
+  const month = appointmentCalendarMonth.getMonth();
+
+  appointmentCalendarTitle.textContent = appointmentCalendarMonth.toLocaleDateString('el-GR', {
+    month: 'long',
+    year: 'numeric'
+  });
+
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const startOffset = (firstDay.getDay() + 6) % 7; // Monday first
+  const totalCells = Math.ceil((startOffset + lastDay.getDate()) / 7) * 7;
+
+  const byDate = appointments.reduce((acc, item) => {
+    if (!item.date) return acc;
+    acc[item.date] = acc[item.date] || [];
+    acc[item.date].push(item);
+    return acc;
+  }, {});
+
+  const todayKey = new Date().toISOString().slice(0, 10);
+  let html = '';
+
+  for (let cell = 0; cell < totalCells; cell++) {
+    const dayNum = cell - startOffset + 1;
+    const inMonth = dayNum >= 1 && dayNum <= lastDay.getDate();
+
+    if (!inMonth) {
+      html += '<button class="calendar-day empty" type="button" disabled></button>';
+      continue;
+    }
+
+    const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+    const items = byDate[key] || [];
+    const isSelected = selectedAppointmentDate === key;
+    const isToday = todayKey === key;
+
+    html += `
+      <button class="calendar-day ${items.length ? 'has-events' : ''} ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}" type="button" data-date="${key}">
+        <span>${dayNum}</span>
+        ${items.length ? `<em>${items.length}</em>` : ''}
+      </button>
+    `;
+  }
+
+  appointmentsCalendar.innerHTML = html;
+
+  appointmentsCalendar.querySelectorAll('[data-date]').forEach(button => {
+    button.addEventListener('click', () => {
+      selectedAppointmentDate = button.dataset.date;
+      renderAppointmentsCalendar();
+      renderSelectedCalendarDay();
+    });
+  });
+
+  if (!selectedAppointmentDate) {
+    const firstWithAppointment = Object.keys(byDate).find(date => date.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`));
+    selectedAppointmentDate = firstWithAppointment || todayKey;
+  }
+
+  renderSelectedCalendarDay();
+}
+
+function renderSelectedCalendarDay() {
+  if (!calendarDayAppointments) return;
+
+  const items = appointments
+    .filter(item => item.date === selectedAppointmentDate)
+    .sort((a, b) => `${a.time || '99:99'}`.localeCompare(`${b.time || '99:99'}`));
+
+  const label = selectedAppointmentDate
+    ? new Date(`${selectedAppointmentDate}T12:00:00`).toLocaleDateString('el-GR', {
+        weekday: 'long',
+        day: '2-digit',
+        month: 'long'
+      })
+    : 'Επιλεγμένη ημέρα';
+
+  if (!items.length) {
+    calendarDayAppointments.innerHTML = `
+      <div class="calendar-day-empty">
+        <strong>${escapeHtml(label)}</strong>
+        <p>Δεν υπάρχουν ραντεβού για αυτή την ημέρα.</p>
+      </div>
+    `;
+    return;
+  }
+
+  calendarDayAppointments.innerHTML = `
+    <div class="calendar-day-list">
+      <strong>${escapeHtml(label)}</strong>
+      ${items.map(item => `
+        <div class="calendar-day-event">
+          <span>${escapeHtml(item.time || '--:--')}</span>
+          <div>
+            <b>${escapeHtml(item.title)}</b>
+            <small>${escapeHtml(item.doctor || item.type || '')}</small>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
 
 
 function getAppointmentsSheetName() {
@@ -2230,8 +2534,8 @@ async function handleAppointmentSubmit(event) {
   };
 
   try {
-    await apiInsertRow(getAppointmentsSheetName(), toAppointmentSheetRow(entry));
-    await loadAppointmentsFromSheet();
+    await withAppLoader('Αποθήκευση ραντεβού...', () => apiInsertRow(getAppointmentsSheetName(), toAppointmentSheetRow(entry)));
+    await withAppLoader('Φόρτωση ραντεβού...', () => loadAppointmentsFromSheet());
   } catch (error) {
     console.error('Appointment cloud insert failed, falling back to localStorage', error);
     appointments.push(entry);
@@ -2242,6 +2546,7 @@ async function handleAppointmentSubmit(event) {
   renderDashboardAppointments();
   appointmentForm.reset();
   appointmentDate.focus();
+  toggleAppointmentFormPanel(false);
 }
 
 function loadAppointments() {
@@ -2272,7 +2577,7 @@ async function deleteAppointment(id) {
   try {
     if (item?.rowId) {
       await apiDeleteRow(getAppointmentsSheetName(), item.rowId);
-      await loadAppointmentsFromSheet();
+      await withAppLoader('Φόρτωση ραντεβού...', () => loadAppointmentsFromSheet());
     } else {
       appointments = appointments.filter(entry => entry.id !== id);
       saveAppointments();
@@ -2296,7 +2601,7 @@ async function toggleAppointmentStatus(id) {
   try {
     if (item.rowId) {
       await apiUpdateRow(getAppointmentsSheetName(), item.rowId, { 'Status': nextStatus });
-      await loadAppointmentsFromSheet();
+      await withAppLoader('Φόρτωση ραντεβού...', () => loadAppointmentsFromSheet());
     } else {
       appointments = appointments.map(entry =>
         entry.id === id ? { ...entry, status: nextStatus } : entry

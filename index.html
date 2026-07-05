@@ -12,11 +12,19 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <link rel="apple-touch-icon" href="icons/icon-192.svg" />
 
-  <link rel="stylesheet" href="styles.css?v=2.0.0" />
+  <link rel="stylesheet" href="styles.css?v=2.4.0" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
 <body>
+
+  <div id="appLoader" class="app-loader" aria-live="polite" aria-hidden="true">
+    <div class="app-loader-card">
+      <div class="loader-spinner"></div>
+      <strong id="appLoaderText">Φόρτωση...</strong>
+    </div>
+  </div>
+
 
   <button id="menuToggle" class="menu-toggle" type="button" aria-label="Άνοιγμα menu">
     <span></span><span></span><span></span>
@@ -37,7 +45,7 @@
       <button class="side-menu-item" type="button" data-view="shopping"><span>🛍️</span><strong>Shopping List</strong></button>
       <button class="side-menu-item" type="button" data-view="videos"><span>▶️</span><strong>Video Library</strong></button>
       <button class="side-menu-item" type="button" data-view="maternity"><span>👶</span><strong>Άδεια Μητρότητας</strong></button>
-    </nav>
+</nav>
   </aside>
 
   <div class="app-shell">
@@ -163,7 +171,7 @@
             </div>
             <span class="arrow">›</span>
           </button>
-        </div>
+</div>
       </section>
 
       <section id="examsView" class="view">
@@ -302,6 +310,12 @@
           </div>
         </div>
 
+        <button id="toggleAppointmentForm" class="add-appointment-toggle" type="button">
+          <span>＋</span>
+          <strong>Προσθήκη ραντεβού</strong>
+        </button>
+
+        <div id="appointmentFormPanel" class="appointment-form-panel">
         <form id="appointmentForm" class="form-card">
           <div class="form-grid">
             <label>
@@ -352,6 +366,7 @@
 
           <button class="primary-btn" type="submit">Προσθήκη ραντεβού</button>
         </form>
+        </div>
 
         <div class="appointment-summary-card">
           <div>
@@ -369,7 +384,20 @@
             <h3>Όλα τα ραντεβού</h3>
             <span id="appointmentCount">0 εγγραφές</span>
           </div>
-          <div id="appointmentsList" class="appointments-list"></div>
+          <div class="appointments-calendar-card">
+          <div class="calendar-header">
+            <button id="prevAppointmentMonth" type="button">‹</button>
+            <strong id="appointmentCalendarTitle">Μήνας</strong>
+            <button id="nextAppointmentMonth" type="button">›</button>
+          </div>
+          <div class="calendar-weekdays">
+            <span>Δ</span><span>Τ</span><span>Τ</span><span>Π</span><span>Π</span><span>Σ</span><span>Κ</span>
+          </div>
+          <div id="appointmentsCalendar" class="appointments-calendar"></div>
+          <div id="calendarDayAppointments" class="calendar-day-appointments"></div>
+        </div>
+
+        <div id="appointmentsList" class="appointments-list"></div>
         </div>
       </section>
 
@@ -607,8 +635,8 @@
 </main>
   </div>
 
-  <script src="config.js?v=2.0.0"></script>
-  <script src="app.js?v=2.0.0"></script>
+  <script src="config.js?v=2.4.0"></script>
+  <script src="app.js?v=2.4.0"></script>
 
   <script>
     if ("serviceWorker" in navigator) {
