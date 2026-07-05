@@ -408,10 +408,10 @@ document.querySelectorAll('[data-view]').forEach(item => {
     closeMenu();
     showView(view);
     if (view === 'exams' && !exams.length) await loadFromConfiguredExcel();
-    if (view === 'weight') { loadWeightEntries(); importPregnancyWeightsIfNeeded(); renderWeightApp(); renderDashboardWeight(); }
+    if (view === 'weight') { const loadedFromSheet = await loadWeightEntriesFromSheet(); if (!loadedFromSheet) importPregnancyWeightsIfNeeded(); renderWeightApp(); renderDashboardWeight(); }
     if (view === 'nutrition') renderNutritionApp();
-    if (view === 'appointments') { loadAppointments(); renderAppointments(); }
-    if (view === 'shopping') { loadShoppingItems(); renderShoppingApp(); }
+    if (view === 'appointments') { await loadAppointmentsFromSheet(); renderAppointments(); }
+    if (view === 'shopping') { await loadShoppingItemsFromSheet(); renderShoppingApp(); }
     if (view === 'videos') renderVideoApp();
     if (view === 'maternity') { prefillMaternityEdd(); calculateMaternityLeave(); }
   });
@@ -443,10 +443,10 @@ openExams?.addEventListener('click', async () => {
   if (!exams.length) await loadFromConfiguredExcel();
 });
 
-openWeight.addEventListener('click', () => {
+openWeight?.addEventListener('click', async () => {
   showView('weight');
-  loadWeightEntries();
-  importPregnancyWeightsIfNeeded();
+  const loadedFromSheet = await loadWeightEntriesFromSheet();
+  if (!loadedFromSheet) importPregnancyWeightsIfNeeded();
   renderWeightApp();
   renderDashboardWeight();
 });
@@ -458,9 +458,9 @@ openNutrition?.addEventListener('click', () => {
 
 backHome?.addEventListener('click', () => showView('home'));
 backHomeFromWeight?.addEventListener('click', () => showView('home'));
-openAppointments?.addEventListener('click', () => {
+openAppointments?.addEventListener('click', async () => {
   showView('appointments');
-  loadAppointments();
+  await loadAppointmentsFromSheet();
   renderAppointments();
 });
 backHomeFromAppointments?.addEventListener('click', () => showView('home'));
@@ -487,7 +487,7 @@ nextWeightPage?.addEventListener('click', () => {
     renderWeightApp();
   }
 });
-openShopping?.addEventListener('click', () => { showView('shopping'); loadShoppingItems(); renderShoppingApp(); });
+openShopping?.addEventListener('click', async () => { showView('shopping'); await loadShoppingItemsFromSheet(); renderShoppingApp(); });
 backHomeFromShopping?.addEventListener('click', () => showView('home'));
 toggleShoppingForm?.addEventListener('click', () => {
   toggleShoppingFormPanel();
@@ -941,7 +941,52 @@ function renderAttachment(url, index) {
 }
 
 
-function handleWeightSubmit(event) {
+
+function getBirthHubApiUrl() {
+  return window.BIRTH_APP_CONFIG?.BIRTHHUB_API_URL?.trim()
+    || window.BIRTH_APP_CONFIG?.EXCEL_URL?.trim()
+    || '';
+}
+
+function getWeightSheetName() {
+  return window.BIRTH_APP_CONFIG?.WEIGHT_SHEET_NAME || 'Weight';
+}
+
+async function apiGetSheet(sheetName) {
+  const apiUrl = getBirthHubApiUrl();
+  if (!apiUrl) throw new Error('BirthHub API URL missing.');
+  const url = `${apiUrl}?sheet=${encodeURIComponent(sheetName)}&_=${Date.now()}`;
+  const response = await fetch(url, { cache: 'no-store' });
+  if (!response.ok) throw new Error(`GET ${sheetName} HTTP ${response.status}`);
+  const data = await response.json();
+  if (data && data.success === false) throw new Error(data.error || `GET ${sheetName} failed`);
+  return Array.isArray(data) ? data : (data.data || data.rows || []);
+}
+
+async function apiPost(payload) {
+  const apiUrl = getBirthHubApiUrl();
+  if (!apiUrl) throw new Error('BirthHub API URL missing.');
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) throw new Error(`POST HTTP ${response.status}`);
+  const data = await response.json();
+  if (data && data.success === false) throw new Error(data.error || 'POST failed');
+  return data;
+}
+
+async function apiInsertRow(sheetName, row) {
+  return apiPost({ action: 'insert', sheet: sheetName, row });
+}
+
+async function apiDeleteRow(sheetName, rowId) {
+  return apiPost({ action: 'delete', sheet: sheetName, rowId });
+}
+
+
+async function handleWeightSubmit(event) {
   event.preventDefault();
 
   const weight = Number(String(weightInput.value).replace(',', '.'));
@@ -951,20 +996,35 @@ function handleWeightSubmit(event) {
 
   const now = new Date();
   const calculated = calculatePregnancyInfo(now.toISOString().slice(0, 10));
+  const pregnancyLabel = `${pregnancyWeek}+${calculated.days}`;
 
   const entry = {
     id: createId(),
     date: now.toISOString(),
     pregnancyWeek,
     pregnancyDays: calculated.days,
-    pregnancyLabel: `${pregnancyWeek}+${calculated.days}`,
+    pregnancyLabel,
     weight
   };
 
-  weightEntries.push(entry);
+  try {
+    await apiInsertRow(getWeightSheetName(), {
+      'Ημερομηνία': now.toISOString().slice(0, 10),
+      'Εβδομάδα': pregnancyLabel,
+      'Βάρος': String(weight).replace('.', ','),
+      'Σχόλια': ''
+    });
+
+    await loadWeightEntriesFromSheet();
+  } catch (error) {
+    console.error('Weight cloud insert failed, falling back to localStorage', error);
+    weightEntries.push(entry);
+    saveWeightEntries();
+  }
+
   currentWeightPage = 1;
-  saveWeightEntries();
   renderWeightApp();
+  renderDashboardWeight();
 
   weightInput.value = '';
   weekInput.value = '';
@@ -979,6 +1039,78 @@ function loadWeightEntries() {
     weightEntries = [];
   }
 }
+
+
+async function loadWeightEntriesFromSheet() {
+  try {
+    const rows = await apiGetSheet(getWeightSheetName());
+    weightEntries = rows.map(normalizeWeightSheetRow).filter(item => item.date && item.weight);
+    saveWeightEntries();
+    return true;
+  } catch (error) {
+    console.error('Weight cloud load failed, using localStorage', error);
+    loadWeightEntries();
+    return false;
+  }
+}
+
+function normalizeWeightSheetRow(row, index) {
+  const dateValue = row['Ημερομηνία'] || row['Ημερομηνια'] || row['Date'] || row['date'] || '';
+  const weekValue = row['Εβδομάδα'] || row['Εβδομαδα'] || row['Week'] || row['week'] || '';
+  const weightValue = row['Βάρος'] || row['Βαρος'] || row['Weight'] || row['weight'] || '';
+  const date = normalizeWeightDateValue(dateValue);
+  const pregnancy = parsePregnancyWeekValue(weekValue, date);
+  const weight = Number(String(weightValue).replace(',', '.'));
+
+  return {
+    id: `sheet-${row._rowId || index + 2}`,
+    rowId: row._rowId,
+    date,
+    pregnancyWeek: pregnancy.week,
+    pregnancyDays: pregnancy.days,
+    pregnancyLabel: pregnancy.label,
+    weight,
+    comments: row['Σχόλια'] || row['Σχολια'] || row['Comments'] || '',
+    source: 'sheet'
+  };
+}
+
+function normalizeWeightDateValue(value) {
+  if (!value) return '';
+  if (value instanceof Date) return value.toISOString();
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    const greekDate = trimmed.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+    if (greekDate) {
+      const day = Number(greekDate[1]);
+      const month = Number(greekDate[2]) - 1;
+      const year = Number(greekDate[3].length === 2 ? `20${greekDate[3]}` : greekDate[3]);
+      return new Date(year, month, day, 12, 0, 0).toISOString();
+    }
+
+    const parsed = new Date(trimmed);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+  }
+
+  return String(value);
+}
+
+function parsePregnancyWeekValue(value, dateValue) {
+  const text = String(value || '').trim();
+  const match = text.match(/(\d{1,2})(?:\+(\d))?/);
+
+  if (match) {
+    const week = Number(match[1]);
+    const days = match[2] !== undefined ? Number(match[2]) : 0;
+    return { week, days, label: `${week}+${days}` };
+  }
+
+  if (dateValue) return calculatePregnancyInfo(String(dateValue).slice(0, 10));
+
+  return { week: '', days: '', label: '' };
+}
+
 
 function saveWeightEntries() {
   localStorage.setItem(WEIGHT_STORAGE_KEY, JSON.stringify(weightEntries));
@@ -1019,11 +1151,26 @@ function clearAllWeightEntries() {
   renderWeightApp();
 }
 
-function deleteWeightEntry(id) {
-  weightEntries = weightEntries.filter(entry => entry.id !== id);
+async function deleteWeightEntry(id) {
+  const entry = weightEntries.find(item => item.id === id);
+
+  try {
+    if (entry?.rowId) {
+      await apiDeleteRow(getWeightSheetName(), entry.rowId);
+      await loadWeightEntriesFromSheet();
+    } else {
+      weightEntries = weightEntries.filter(item => item.id !== id);
+      saveWeightEntries();
+    }
+  } catch (error) {
+    console.error('Weight cloud delete failed, deleting locally only', error);
+    weightEntries = weightEntries.filter(item => item.id !== id);
+    saveWeightEntries();
+  }
+
   currentWeightPage = 1;
-  saveWeightEntries();
   renderWeightApp();
+  renderDashboardWeight();
 }
 
 function renderWeightApp() {
@@ -1393,17 +1540,73 @@ function toggleShoppingFormPanel(forceOpen) {
   }
 }
 
+
+function getShoppingSheetName() {
+  return window.BIRTH_APP_CONFIG?.SHOPPING_SHEET_NAME || 'Shopping';
+}
+
+async function loadShoppingItemsFromSheet() {
+  try {
+    const rows = await apiGetSheet(getShoppingSheetName());
+    shoppingItems = rows
+      .map(normalizeShoppingSheetRow)
+      .filter(item => item.title);
+
+    saveShoppingItems();
+    return true;
+  } catch (error) {
+    console.error('Shopping cloud load failed, using localStorage', error);
+    loadShoppingItems();
+    return false;
+  }
+}
+
+function normalizeShoppingSheetRow(row, index) {
+  return {
+    id: `sheet-${row._rowId || index + 2}`,
+    rowId: row._rowId,
+    date: row['Ημερομηνία'] || row['Ημερομηνια'] || row['Date'] || '',
+    category: row['Κατηγορία'] || row['Κατηγορια'] || row['Category'] || 'Άλλο',
+    title: row['Προϊόν'] || row['Προιον'] || row['Τίτλος'] || row['Τιτλος'] || row['Product'] || row['Title'] || '',
+    url: row['Link'] || row['URL'] || row['Url'] || '',
+    image: row['ImageUrl'] || row['ImageURL'] || row['Image'] || '',
+    price: Number(String(row['Τιμή'] || row['Τιμη'] || row['Price'] || 0).replace(',', '.')) || 0,
+    priority: row['Priority'] || 'Must have',
+    status: row['Status'] || 'Υπό σκέψη',
+    notes: row['Σχόλια'] || row['Σχολια'] || row['Σημειώσεις'] || row['Σημειωσεις'] || row['Notes'] || '',
+    source: 'sheet'
+  };
+}
+
+function toShoppingSheetRow(item) {
+  return {
+    'Ημερομηνία': item.date || new Date().toISOString().slice(0, 10),
+    'Κατηγορία': item.category || '',
+    'Προϊόν': item.title || '',
+    'Link': item.url || '',
+    'ImageUrl': item.image || '',
+    'Τιμή': String(item.price || 0).replace('.', ','),
+    'Priority': item.priority || '',
+    'Status': item.status || '',
+    'Σχόλια': item.notes || ''
+  };
+}
+
+
 function loadShoppingItems() {
   try { shoppingItems = JSON.parse(localStorage.getItem(SHOPPING_STORAGE_KEY)) || []; }
   catch { shoppingItems = []; }
 }
 function saveShoppingItems() { localStorage.setItem(SHOPPING_STORAGE_KEY, JSON.stringify(shoppingItems)); }
-function handleShoppingSubmit(event) {
+async function handleShoppingSubmit(event) {
   event.preventDefault();
+
   const title = shoppingTitle.value.trim();
   if (!title) return;
+
   const item = {
     id: createId(),
+    date: new Date().toISOString().slice(0, 10),
     url: shoppingUrl.value.trim(),
     category: shoppingCategory.value,
     title,
@@ -1414,14 +1617,26 @@ function handleShoppingSubmit(event) {
     notes: shoppingNotes.value.trim(),
     createdAt: new Date().toISOString()
   };
-  shoppingItems.unshift(item);
-  saveShoppingItems();
+
+  try {
+    await apiInsertRow(getShoppingSheetName(), toShoppingSheetRow(item));
+    await loadShoppingItemsFromSheet();
+  } catch (error) {
+    console.error('Shopping cloud insert failed, falling back to localStorage', error);
+    shoppingItems.unshift(item);
+    saveShoppingItems();
+  }
+
   renderShoppingApp();
   shoppingForm.reset();
   shoppingPriority.value = 'Must have';
   shoppingStatus.value = 'Υπό σκέψη';
-  toggleShoppingFormPanel(false);
+
+  if (typeof toggleShoppingFormPanel === 'function') {
+    toggleShoppingFormPanel(false);
+  }
 }
+
 async function fetchShoppingMetadata() {
   const url = shoppingUrl?.value?.trim();
   if (!url) { alert('Βάλε πρώτα link προϊόντος.'); return; }
@@ -1442,23 +1657,60 @@ async function fetchShoppingMetadata() {
     if (fetchShoppingMeta) fetchShoppingMeta.textContent = 'Ανάκτηση στοιχείων από link';
   }
 }
-function clearAllShoppingItems() {
+function clearAllShoppingItems() { // clears local cache only; delete rows individually to remove from Google Sheet
   if (!shoppingItems.length) return;
   if (!confirm('Θέλεις σίγουρα να διαγραφεί όλη η shopping list από αυτή τη συσκευή;')) return;
   shoppingItems = [];
   saveShoppingItems();
   renderShoppingApp();
 }
-function deleteShoppingItem(id) {
-  shoppingItems = shoppingItems.filter(item => item.id !== id);
-  saveShoppingItems();
+async function deleteShoppingItem(id) {
+  const item = shoppingItems.find(entry => entry.id === id);
+
+  try {
+    if (item?.rowId) {
+      await apiDeleteRow(getShoppingSheetName(), item.rowId);
+      await loadShoppingItemsFromSheet();
+    } else {
+      shoppingItems = shoppingItems.filter(entry => entry.id !== id);
+      saveShoppingItems();
+    }
+  } catch (error) {
+    console.error('Shopping cloud delete failed, deleting locally only', error);
+    shoppingItems = shoppingItems.filter(entry => entry.id !== id);
+    saveShoppingItems();
+  }
+
   renderShoppingApp();
 }
-function toggleShoppingStatus(id) {
-  shoppingItems = shoppingItems.map(item => item.id === id ? { ...item, status: item.status === 'Αγοράστηκε' ? 'Υπό σκέψη' : 'Αγοράστηκε' } : item);
-  saveShoppingItems();
+
+async function toggleShoppingStatus(id) {
+  const item = shoppingItems.find(entry => entry.id === id);
+  if (!item) return;
+
+  const nextStatus = item.status === 'Αγοράστηκε' ? 'Υπό σκέψη' : 'Αγοράστηκε';
+
+  try {
+    if (item.rowId) {
+      await apiUpdateRow(getShoppingSheetName(), item.rowId, { 'Status': nextStatus });
+      await loadShoppingItemsFromSheet();
+    } else {
+      shoppingItems = shoppingItems.map(entry =>
+        entry.id === id ? { ...entry, status: nextStatus } : entry
+      );
+      saveShoppingItems();
+    }
+  } catch (error) {
+    console.error('Shopping cloud update failed, updating locally only', error);
+    shoppingItems = shoppingItems.map(entry =>
+      entry.id === id ? { ...entry, status: nextStatus } : entry
+    );
+    saveShoppingItems();
+  }
+
   renderShoppingApp();
 }
+
 function renderShoppingApp() {
   renderShoppingSummary();
   const query = (shoppingSearch?.value || '').trim().toLowerCase();
@@ -1827,7 +2079,137 @@ function renderDashboardExams() {
 
 
 
-function handleAppointmentSubmit(event) {
+
+function getAppointmentsSheetName() {
+  return window.BIRTH_APP_CONFIG?.APPOINTMENTS_SHEET_NAME || 'Appointments';
+}
+
+async function loadAppointmentsFromSheet() {
+  try {
+    const rows = await apiGetSheet(getAppointmentsSheetName());
+
+    appointments = rows
+      .map(normalizeAppointmentSheetRow)
+      .filter(item => item.date && item.title);
+
+    saveAppointments();
+    return true;
+  } catch (error) {
+    console.error('Appointments cloud load failed, using localStorage', error);
+    loadAppointments();
+    return false;
+  }
+}
+
+function normalizeAppointmentSheetRow(row, index) {
+  return {
+    id: `sheet-${row._rowId || index + 2}`,
+    rowId: row._rowId,
+    date: normalizeAppointmentDateValue(row['Ημερομηνία'] || row['Ημερομηνια'] || row['Date'] || ''),
+    time: normalizeAppointmentTimeValue(row['Ώρα'] || row['Ωρα'] || row['Time'] || ''),
+    title: row['Τίτλος'] || row['Τιτλος'] || row['Title'] || '',
+    doctor: row['Γιατρός'] || row['Γιατρος'] || row['Doctor'] || '',
+    type: row['Τύπος'] || row['Τυπος'] || row['Type'] || 'Επίσκεψη',
+    status: row['Status'] || row['Κατάσταση'] || row['Κατασταση'] || 'Προγραμματισμένο',
+    notes: row['Σημειώσεις'] || row['Σημειωσεις'] || row['Σχόλια'] || row['Σχολια'] || row['Notes'] || '',
+    source: 'sheet'
+  };
+}
+
+function normalizeAppointmentDateValue(value) {
+  if (!value) return '';
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+
+    const iso = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})T/);
+    if (iso) {
+      const parsed = new Date(trimmed);
+      if (!Number.isNaN(parsed.getTime())) {
+        return new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Europe/Athens',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).format(parsed);
+      }
+      return `${iso[1]}-${iso[2]}-${iso[3]}`;
+    }
+
+    const isoDateOnly = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (isoDateOnly) return trimmed;
+
+    const greekDate = trimmed.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+    if (greekDate) {
+      const day = String(greekDate[1]).padStart(2, '0');
+      const month = String(greekDate[2]).padStart(2, '0');
+      const year = greekDate[3].length === 2 ? `20${greekDate[3]}` : greekDate[3];
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  const parsed = new Date(value);
+  if (!Number.isNaN(parsed.getTime())) {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Athens',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(parsed);
+  }
+
+  return String(value);
+}
+
+function normalizeAppointmentTimeValue(value) {
+  if (!value) return '';
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+
+    const isoTime = trimmed.match(/T(\d{2}):(\d{2})/);
+    if (isoTime) return `${isoTime[1]}:${isoTime[2]}`;
+
+    const simpleTime = trimmed.match(/^(\d{1,2}):(\d{2})/);
+    if (simpleTime) {
+      return `${String(simpleTime[1]).padStart(2, '0')}:${simpleTime[2]}`;
+    }
+  }
+
+  if (typeof value === 'number') {
+    const totalMinutes = Math.round(value * 24 * 60);
+    const hours = Math.floor(totalMinutes / 60) % 24;
+    const minutes = totalMinutes % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  }
+
+  const parsed = new Date(value);
+  if (!Number.isNaN(parsed.getTime())) {
+    return new Intl.DateTimeFormat('el-GR', {
+      timeZone: 'UTC',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).format(parsed);
+  }
+
+  return String(value);
+}
+
+function toAppointmentSheetRow(item) {
+  return {
+    'Ημερομηνία': item.date || '',
+    'Ώρα': item.time || '',
+    'Τίτλος': item.title || '',
+    'Γιατρός': item.doctor || '',
+    'Τύπος': item.type || '',
+    'Status': item.status || '',
+    'Σημειώσεις': item.notes || ''
+  };
+}
+
+
+async function handleAppointmentSubmit(event) {
   event.preventDefault();
 
   const date = appointmentDate.value;
@@ -1847,8 +2229,15 @@ function handleAppointmentSubmit(event) {
     createdAt: new Date().toISOString()
   };
 
-  appointments.push(entry);
-  saveAppointments();
+  try {
+    await apiInsertRow(getAppointmentsSheetName(), toAppointmentSheetRow(entry));
+    await loadAppointmentsFromSheet();
+  } catch (error) {
+    console.error('Appointment cloud insert failed, falling back to localStorage', error);
+    appointments.push(entry);
+    saveAppointments();
+  }
+
   renderAppointments();
   renderDashboardAppointments();
   appointmentForm.reset();
@@ -1868,7 +2257,7 @@ function saveAppointments() {
   localStorage.setItem(APPOINTMENTS_STORAGE_KEY, JSON.stringify(appointments));
 }
 
-function clearAllAppointments() {
+function clearAllAppointments() { // clears local cache only; delete rows individually to remove from Google Sheet
   if (!appointments.length) return;
   const confirmed = confirm('Θέλεις σίγουρα να διαγραφούν όλα τα ραντεβού από αυτή τη συσκευή;');
   if (!confirmed) return;
@@ -1877,20 +2266,53 @@ function clearAllAppointments() {
   renderAppointments();
 }
 
-function deleteAppointment(id) {
-  appointments = appointments.filter(item => item.id !== id);
-  saveAppointments();
+async function deleteAppointment(id) {
+  const item = appointments.find(entry => entry.id === id);
+
+  try {
+    if (item?.rowId) {
+      await apiDeleteRow(getAppointmentsSheetName(), item.rowId);
+      await loadAppointmentsFromSheet();
+    } else {
+      appointments = appointments.filter(entry => entry.id !== id);
+      saveAppointments();
+    }
+  } catch (error) {
+    console.error('Appointment cloud delete failed, deleting locally only', error);
+    appointments = appointments.filter(entry => entry.id !== id);
+    saveAppointments();
+  }
+
   renderAppointments();
+  renderDashboardAppointments();
 }
 
-function toggleAppointmentStatus(id) {
-  appointments = appointments.map(item => {
-    if (item.id !== id) return item;
-    const nextStatus = item.status === 'Ολοκληρώθηκε' ? 'Προγραμματισμένο' : 'Ολοκληρώθηκε';
-    return { ...item, status: nextStatus };
-  });
-  saveAppointments();
+async function toggleAppointmentStatus(id) {
+  const item = appointments.find(entry => entry.id === id);
+  if (!item) return;
+
+  const nextStatus = item.status === 'Ολοκληρώθηκε' ? 'Προγραμματισμένο' : 'Ολοκληρώθηκε';
+
+  try {
+    if (item.rowId) {
+      await apiUpdateRow(getAppointmentsSheetName(), item.rowId, { 'Status': nextStatus });
+      await loadAppointmentsFromSheet();
+    } else {
+      appointments = appointments.map(entry =>
+        entry.id === id ? { ...entry, status: nextStatus } : entry
+      );
+      saveAppointments();
+    }
+  } catch (error) {
+    console.error('Appointment cloud update failed, updating locally only', error);
+    appointments = appointments.map(entry =>
+      entry.id === id ? { ...entry, status: nextStatus } : entry
+    );
+    saveAppointments();
+  }
+
   renderAppointments();
+  renderDashboardAppointments();
 }
 
 function renderAppointments() {
@@ -2018,3 +2440,467 @@ document.addEventListener('DOMContentLoaded', () => {
 window.deleteWeightEntry = typeof deleteWeightEntry !== 'undefined' ? deleteWeightEntry : window.deleteWeightEntry;
 window.deleteAppointment = typeof deleteAppointment !== 'undefined' ? deleteAppointment : window.deleteAppointment;
 window.toggleAppointmentStatus = typeof toggleAppointmentStatus !== 'undefined' ? toggleAppointmentStatus : window.toggleAppointmentStatus;
+
+
+/* Paymaster maternity calculator integration */
+(function () {
+    const $ = id => document.getElementById(id);
+    const PRE = 56;
+    const POST = 63;
+    const DYPAMONTHS = 9;
+
+    const fixedHolidayKeys = new Set(['01-01', '01-06', '03-25', '05-01', '08-15', '10-28', '12-25', '12-26']);
+
+    function parseDate(value) {
+        if (!value)
+            return null;
+        const d = new Date(value + 'T00:00:00');
+        return isNaN(d.getTime()) ? null : d;
+    }
+
+    function fmt(d) {
+        if (!d || isNaN(d.getTime()))
+            return '—';
+        return d.toLocaleDateString('el-GR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    }
+
+    function addDays(date, days) {
+        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        d.setUTCDate(d.getUTCDate() + days);
+        return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    }
+
+    function addMonths(date, months) {
+        const y = date.getFullYear();
+        const m = date.getMonth();
+        const day = date.getDate();
+        const d = new Date(y, m + months, day);
+        if (d.getDate() !== day) {
+            d.setDate(0);
+        }
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+
+    function inclusiveEndByMonths(start, months) {
+        return addDays(addMonths(start, months), -1);
+    }
+
+    function diffDays(a, b) {
+        const ms = new Date(b.getFullYear(), b.getMonth(), b.getDate()) - new Date(a.getFullYear(), a.getMonth(), a.getDate());
+        return Math.round(ms / 86400000);
+    }
+
+    function diffDaysInclusive(a, b) {
+        if (!a || !b || b < a)
+            return 0;
+        return diffDays(a, b) + 1;
+    }
+
+    function isFixedHoliday(d) {
+        const key = String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        return fixedHolidayKeys.has(key);
+    }
+
+    function isWorkingDay(d, opts) {
+        const day = d.getDay();
+        if (opts.workweek === 5 && (day === 0 || day === 6))
+            return false;
+        if (opts.workweek === 6 && day === 0)
+            return false;
+        if (opts.excludeFixedHolidays && isFixedHoliday(d))
+            return false;
+        return true;
+    }
+
+    function countWorkingDays(start, end, opts) {
+        if (!start || !end || end < start)
+            return 0;
+        let count = 0;
+        let d = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+        while (d <= end) {
+            if (isWorkingDay(d, opts))
+                count++;
+            d = addDays(d, 1);
+        }
+        return Math.max(0, count);
+    }
+
+    function addWorkingDaysInclusive(start, workingDays, opts) {
+        const target = Math.ceil(Math.max(0, workingDays));
+        if (target <= 0)
+            return addDays(start, -1);
+        let count = 0;
+        let d = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+        let guard = 0;
+        while (guard < 2000) {
+            if (isWorkingDay(d, opts)) {
+                count++;
+                if (count >= target)
+                    return d;
+            }
+            d = addDays(d, 1);
+            guard++;
+        }
+        return d;
+    }
+
+    function numberValue(id, fallback) {
+        const v = parseFloat($(id).value);
+        return Number.isFinite(v) ? v : fallback;
+    }
+
+    function getOptions() {
+        return {
+            workweek: parseInt($('pmWorkweek').value, 10),
+            dailyHours: Math.max(1, numberValue('pmDailyHours', 8)),
+            extraNonWorking: Math.max(0, Math.round(numberValue('pmExtraNonWorking', 0))),
+            excludeFixedHolidays: $('pmExcludeFixedHolidays').checked
+        };
+    }
+
+    function childcareSegments(start, opts) {
+        const pattern = $('pmChildcarePattern').value;
+        const rows = [];
+        let totalHours = 0;
+        let totalWorkingDaysRaw = 0;
+
+        if (pattern === 'alternative') {
+            const seg1Start = start;
+            const seg1End = inclusiveEndByMonths(seg1Start, 12);
+            const seg2Start = addDays(seg1End, 1);
+            const seg2End = inclusiveEndByMonths(seg2Start, 6);
+            const w1 = countWorkingDays(seg1Start, seg1End, opts);
+            const w2 = countWorkingDays(seg2Start, seg2End, opts);
+            totalWorkingDaysRaw = w1 + w2;
+            totalHours = (w1 * 2) + (w2 * 1);
+
+            rows.push({
+                phase: 'Μειωμένο ωράριο · 1η περίοδος',
+                from: seg1Start,
+                to: seg1End,
+                duration: `${w1} εργάσιμες ημέρες`,
+                note: 'Μείωση 2 ωρών ημερησίως για 12 μήνες.'
+            });
+            rows.push({
+                phase: 'Μειωμένο ωράριο · 2η περίοδος',
+                from: seg2Start,
+                to: seg2End,
+                duration: `${w2} εργάσιμες ημέρες`,
+                note: 'Μείωση 1 ώρας ημερησίως για 6 μήνες.'
+            });
+
+            return {
+                rows,
+                end: seg2End,
+                totalHours,
+                totalWorkingDaysRaw,
+                patternLabel: '2 ώρες/ημέρα για 12 μήνες + 1 ώρα/ημέρα για 6 μήνες'
+            };
+        }
+
+        const end = inclusiveEndByMonths(start, 30);
+        const w = countWorkingDays(start, end, opts);
+        totalWorkingDaysRaw = w;
+        totalHours = w;
+        rows.push({
+            phase: 'Μειωμένο ωράριο',
+            from: start,
+            to: end,
+            duration: `${w} εργάσιμες ημέρες`,
+            note: 'Μείωση 1 ώρας ημερησίως για 30 μήνες.'
+        });
+
+        return {
+            rows,
+            end,
+            totalHours,
+            totalWorkingDaysRaw,
+            patternLabel: '1 ώρα/ημέρα για 30 μήνες'
+        };
+    }
+
+    function equivalentLeave(start, opts) {
+        const seg = childcareSegments(start, opts);
+        const adjustedHours = Math.max(0, seg.totalHours - opts.extraNonWorking);
+        const exactDays = adjustedHours / opts.dailyHours;
+        const fullDays = Math.floor(exactDays);
+        const remHours = +(adjustedHours - (fullDays * opts.dailyHours)).toFixed(2);
+        const calendarEnd = addWorkingDaysInclusive(start, exactDays, opts);
+
+        let duration = `${adjustedHours.toFixed(2).replace('.00', '')} ώρες / ${exactDays.toFixed(2)} εργάσιμες ημέρες`;
+        let note = `Ισόχρονη αντί για: ${seg.patternLabel}. Υπολογισμός με ${opts.dailyHours} ώρες πλήρους ημερήσιου ωραρίου.`;
+        if (remHours > 0) {
+            note += ` Πρακτικά: ${fullDays} πλήρεις εργάσιμες ημέρες και περίπου ${remHours} ώρες.`;
+        }
+        if (opts.extraNonWorking > 0) {
+            note += ` Έχει γίνει χειροκίνητη αφαίρεση ${opts.extraNonWorking} ωρών/ημερών από το συνολικό αποτέλεσμα, σύμφωνα με την παράμετρο που δήλωσες.`;
+        }
+
+        return {
+            phase: 'Ισόχρονη άδεια φροντίδας παιδιού',
+            from: start,
+            to: calendarEnd,
+            duration,
+            note,
+            end: calendarEnd,
+            totalHours: adjustedHours,
+            exactDays
+        };
+    }
+
+    function maternityCalculation(due, actual) {
+        let plannedStart = addDays(due, -PRE);
+        let birth = actual || due;
+        let start = plannedStart;
+        let preFrom = plannedStart;
+        let preTo = addDays(birth, -1);
+        let postFrom = birth;
+        let postDays = POST;
+        let note = 'Βασικός υπολογισμός με βάση την ΠΗΤ.';
+
+        if (actual) {
+            if (actual < due) {
+                if (actual < plannedStart) {
+                    start = actual;
+                    preFrom = actual;
+                    preTo = addDays(actual, -1);
+                }
+                const usedPre = Math.max(0, diffDays(preFrom, actual));
+                const remainingPre = Math.max(0, PRE - usedPre);
+                postDays = POST + remainingPre;
+                note = `Πρόωρος τοκετός: ${remainingPre} ημέρες από το προγεννητικό τμήμα μεταφέρονται μετά τον τοκετό.`;
+            } else if (actual > due) {
+                note = 'Ο τοκετός έγινε μετά την ΠΗΤ: η λοχεία μετρά από την πραγματική ημερομηνία και η συνολική περίοδος παρατείνεται.';
+            } else {
+                note = 'Η πραγματική ημερομηνία τοκετού είναι ίδια με την ΠΗΤ.';
+            }
+        }
+
+        const postTo = addDays(postFrom, postDays - 1);
+        const end = postTo;
+
+        return {
+            start,
+            end,
+            birth,
+            note,
+            preFrom,
+            preTo,
+            postFrom,
+            postTo,
+            preDays: diffDaysInclusive(preFrom, preTo),
+            postDays: diffDaysInclusive(postFrom, postTo),
+            totalDays: diffDaysInclusive(start, end)
+        };
+    }
+
+    function pushRow(rows, phase, from, to, duration, note) {
+        rows.push({
+            phase,
+            from,
+            to,
+            duration,
+            note
+        });
+    }
+
+    function rowHtml(row) {
+        return `
+      <tr>
+        <td><b>${row.phase}</b>${row.note ? `<span class="phase-note">${row.note}</span>` : ''}</td>
+        <td>${fmt(row.from)}</td>
+        <td>${fmt(row.to)}</td>
+        <td>${row.duration}</td>
+      </tr>`;
+    }
+
+    function render() {
+        const due = parseDate($('pmDue').value);
+        const actual = $('pmUseActual').checked ? parseDate($('pmActual').value) : null;
+        const box = $('pmMotherhoodResults');
+
+        $('pmActualWrap').style.display = $('pmUseActual').checked ? 'block' : 'none';
+
+        if (!due) {
+            box.innerHTML = '<em class="muted">Συμπλήρωσε την ΠΗΤ για να εμφανιστεί το πλήρες ημερολόγιο.</em>';
+            return;
+        }
+
+        const opts = getOptions();
+        const mat = maternityCalculation(due, actual);
+        const rows = [];
+
+        if (mat.preDays > 0) {
+            pushRow(rows, 'Άδεια κυοφορίας · πριν τον τοκετό', mat.preFrom, mat.preTo, `${mat.preDays} ημερολογιακές ημέρες`, 'Προγεννητικό τμήμα άδειας μητρότητας.');
+        } else {
+            pushRow(rows, 'Άδεια κυοφορίας · πριν τον τοκετό', mat.birth, addDays(mat.birth, -1), '0 ημέρες', 'Ο τοκετός έγινε πριν ξεκινήσει πρακτικά το προγεννητικό τμήμα.');
+        }
+
+        pushRow(rows, 'Ημερομηνία τοκετού', mat.birth, mat.birth, '1 ημέρα', actual ? 'Πραγματική ημερομηνία τοκετού.' : 'Χρησιμοποιείται η ΠΗΤ ως ημερομηνία τοκετού για τον υπολογισμό.');
+        pushRow(rows, 'Άδεια λοχείας · μετά τον τοκετό', mat.postFrom, mat.postTo, `${mat.postDays} ημερολογιακές ημέρες`, 'Μεταγεννητικό τμήμα άδειας μητρότητας.');
+
+        let current = addDays(mat.end, 1);
+        let lastLeaveEnd = mat.end;
+        let dypaRow = null;
+        let childcareResult = null;
+        let parentalRows = [];
+
+        const annualDays = Math.max(0, Math.round(numberValue('pmAnnualDays', 0)));
+        if (annualDays > 0) {
+            const annualEnd = addWorkingDaysInclusive(current, annualDays, opts);
+            pushRow(rows, 'Ετήσια κανονική άδεια', current, annualEnd, `${annualDays} εργάσιμες ημέρες`, 'Προαιρετική τοποθέτηση πριν από την επόμενη άδεια/παροχή.');
+            current = addDays(annualEnd, 1);
+            lastLeaveEnd = annualEnd;
+        }
+
+        const childcareUse = $('pmChildcareUse').value;
+        const includeDypa = $('pmIncludeDypa').checked;
+        const parentalMode = $('pmParentalMode').value;
+        const parentalMonths = Math.min(4, Math.max(0, numberValue('pmParentalMonths', 4)));
+
+        if (childcareUse === 'eq-before-dypa') {
+            childcareResult = equivalentLeave(current, opts);
+            pushRow(rows, childcareResult.phase, childcareResult.from, childcareResult.to, childcareResult.duration, childcareResult.note);
+            current = addDays(childcareResult.end, 1);
+            lastLeaveEnd = childcareResult.end;
+        }
+
+        if (includeDypa) {
+            const dypaStart = current;
+            const dypaEnd = inclusiveEndByMonths(dypaStart, DYPAMONTHS);
+            dypaRow = {
+                from: dypaStart,
+                to: dypaEnd
+            };
+            pushRow(rows, 'Ειδική παροχή προστασίας μητρότητας ΔΥΠΑ', dypaStart, dypaEnd, '9 μήνες', 'Η γνωστή ειδική άδεια/παροχή μητρότητας της ΔΥΠΑ.');
+            current = addDays(dypaEnd, 1);
+            lastLeaveEnd = dypaEnd;
+        }
+
+        if (parentalMode === 'after-dypa-before-childcare' && parentalMonths > 0) {
+            const pStart = current;
+            const pEnd = inclusiveEndByMonths(pStart, parentalMonths);
+            const paidMonths = Math.min(2, parentalMonths);
+            pushRow(rows, 'Γονική άδεια ανατροφής', pStart, pEnd, `${parentalMonths} μήνες`, `Προαιρετική ένταξη στο ημερολόγιο. Οι πρώτοι ${paidMonths} μήνες μπορούν να επιδοτηθούν από ΔΥΠΑ, εφόσον πληρούνται οι προϋποθέσεις.`);
+            parentalRows.push({
+                from: pStart,
+                to: pEnd
+            });
+            current = addDays(pEnd, 1);
+            lastLeaveEnd = pEnd;
+        }
+
+        if (childcareUse === 'eq-after-dypa') {
+            childcareResult = equivalentLeave(current, opts);
+            pushRow(rows, childcareResult.phase, childcareResult.from, childcareResult.to, childcareResult.duration, childcareResult.note);
+            current = addDays(childcareResult.end, 1);
+            lastLeaveEnd = childcareResult.end;
+        }
+
+        if (childcareUse === 'hours-after') {
+            const reduced = childcareSegments(current, opts);
+            reduced.rows.forEach(r => pushRow(rows, r.phase, r.from, r.to, r.duration, r.note));
+            childcareResult = {
+                from: current,
+                to: reduced.end,
+                totalHours: reduced.totalHours,
+                exactDays: reduced.totalHours / opts.dailyHours,
+                isReducedHours: true
+            };
+            current = addDays(reduced.end, 1);
+        }
+
+        if (parentalMode === 'after-childcare' && parentalMonths > 0) {
+            const pStart = current;
+            const pEnd = inclusiveEndByMonths(pStart, parentalMonths);
+            const paidMonths = Math.min(2, parentalMonths);
+            pushRow(rows, 'Γονική άδεια ανατροφής', pStart, pEnd, `${parentalMonths} μήνες`, `Προαιρετική ένταξη στο ημερολόγιο. Οι πρώτοι ${paidMonths} μήνες μπορούν να επιδοτηθούν από ΔΥΠΑ, εφόσον πληρούνται οι προϋποθέσεις.`);
+            parentalRows.push({
+                from: pStart,
+                to: pEnd
+            });
+            current = addDays(pEnd, 1);
+            lastLeaveEnd = pEnd;
+        }
+
+        const finalDate = addDays(current, -1);
+        const returnDate = current;
+        const totalAbsenceDays = diffDaysInclusive(mat.start, lastLeaveEnd);
+        const dypaText = dypaRow ? `${fmt(dypaRow.from)} → ${fmt(dypaRow.to)}` : 'Δεν έχει επιλεγεί';
+        const childcareText = childcareResult ? (childcareResult.isReducedHours ? `${fmt(childcareResult.from)} → ${fmt(childcareResult.to)}` : `${childcareResult.totalHours.toFixed(2).replace('.00', '')} ώρες`) : 'Δεν έχει επιλεγεί';
+        const parentalText = parentalRows.length ? `${fmt(parentalRows[0].from)} → ${fmt(parentalRows[0].to)}` : 'Δεν έχει επιλεγεί';
+
+        box.innerHTML = `
+      <div class="result-top">
+        <div class="hero-box">
+          <div class="eyebrow-result">Συνολική εικόνα</div>
+          <div class="amount">${fmt(mat.start)} → ${fmt(finalDate)}</div>
+          <div class="sub">${mat.note}<br>Ενδεικτική επόμενη πλήρης ημέρα εργασίας/επιστροφής: <b>${fmt(returnDate)}</b></div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat">
+            <div class="label">Μητρότητα</div>
+            <div class="value">${mat.totalDays} ημέρες</div>
+          </div>
+          <div class="stat">
+            <div class="label">9μηνο ΔΥΠΑ</div>
+            <div class="value">${dypaText}</div>
+          </div>
+          <div class="stat">
+            <div class="label">Μειωμένο / Ισόχρονη</div>
+            <div class="value">${childcareText}</div>
+          </div>
+          <div class="stat">
+            <div class="label">Γονική άδεια</div>
+            <div class="value">${parentalText}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-title" style="margin-top:0;">Αναλυτικό ημερολόγιο</div>
+      <table>
+        <tr>
+          <th style="width:34%">Περίοδος</th>
+          <th>Από</th>
+          <th>Έως</th>
+          <th>Διάρκεια</th>
+        </tr>
+        ${rows.map(rowHtml).join('')}
+      </table>
+
+      <div class="notice">
+        <p>
+          <strong>Γρήγορος έλεγχος:</strong> Η άδεια μητρότητας εμφανίζεται σε ημερολογιακές ημέρες. Η κανονική άδεια και η ισόχρονη εμφανίζονται σε εργάσιμες ημέρες με βάση ${opts.workweek}ήμερο και ${opts.dailyHours} ώρες/ημέρα.
+          ${opts.excludeFixedHolidays ? 'Αφαιρούνται οι βασικές σταθερές αργίες όταν πέφτουν σε εργάσιμη ημέρα.' : 'Δεν γίνεται αυτόματη αφαίρεση σταθερών αργιών.'}
+        </p>
+      </div>
+    `;
+    }
+
+    const inputs = ['pmDue', 'pmUseActual', 'pmActual', 'pmAnnualDays', 'pmIncludeDypa', 'pmChildcareUse', 'pmChildcarePattern', 'pmParentalMode', 'pmParentalMonths', 'pmWorkweek', 'pmDailyHours', 'pmExtraNonWorking', 'pmExcludeFixedHolidays'];
+
+    inputs.forEach(id => {
+        const el = $(id);
+        if (!el)
+            return;
+        el.addEventListener('input', render);
+        el.addEventListener('change', render);
+    }
+    );
+
+    window.renderPaymasterMaternity = render;
+
+    const dueInput = $('pmDue');
+    if (dueInput && !dueInput.value) {
+        const lmp = new Date('2026-01-12T00:00:00');
+        dueInput.value = addDays(lmp, 280).toISOString().slice(0, 10);
+    }
+
+    render();
+}
+)();

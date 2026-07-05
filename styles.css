@@ -1069,3 +1069,161 @@ body.menu-open{overflow:hidden}
 .legal-note{margin-top:14px!important;color:#92400e!important;background:#fef3c7;border-radius:16px;padding:12px;}
 @media(max-width:520px){.maternity-cards-grid{grid-template-columns:1fr;}}
 @media print{.menu-toggle,.side-menu,.side-menu-overlay,.top-bar,.cards-grid,.hero-dashboard{display:none!important;}body{background:white!important;}.view{display:none!important;}#maternityView{display:block!important;}.app-shell{padding:0!important;}.maternity-countdown-card,.maternity-timeline-card,.maternity-explanation-card,.maternity-info-card,.shopping-summary-card{box-shadow:none!important;break-inside:avoid;}}
+
+/* Paymaster-style maternity calculator */
+.maternity .icon { background:#dbeafe; }
+.checkbox-label {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: white;
+  box-shadow: 0 10px 24px rgba(15,23,42,.06);
+  border: 1px solid rgba(15,23,42,.08);
+}
+.checkbox-label input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+.checkbox-label span {
+  margin: 0 !important;
+}
+.result-top {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.hero-box {
+  color: white;
+  background:
+    radial-gradient(circle at top right, rgba(255,255,255,.18), transparent 34%),
+    linear-gradient(135deg, #1e3a8a, #2563eb 55%, #0891b2);
+  border-radius: 26px;
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+.eyebrow-result {
+  opacity: .82;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.hero-box .amount {
+  font-size: 23px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+.hero-box .sub {
+  margin-top: 9px;
+  opacity: .9;
+  line-height: 1.45;
+  font-size: 14px;
+}
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 10px;
+}
+.stat {
+  background: white;
+  border: 1px solid rgba(15,23,42,.08);
+  border-radius: 20px;
+  padding: 13px;
+  box-shadow: 0 10px 24px rgba(15,23,42,.06);
+}
+.stat .label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 6px;
+}
+.stat .value {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+.card-title {
+  font-size: 18px;
+  font-weight: 900;
+  margin: 16px 0 10px;
+}
+#pmMotherhoodResults table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+#pmMotherhoodResults th,
+#pmMotherhoodResults td {
+  text-align: left;
+  vertical-align: top;
+  padding: 12px 10px;
+  border-bottom: 1px solid rgba(15,23,42,.08);
+  font-size: 13px;
+}
+#pmMotherhoodResults th {
+  color: var(--muted);
+  background: #f8fafc;
+  font-size: 12px;
+  font-weight: 900;
+}
+.phase-note {
+  display: block;
+  color: var(--muted);
+  font-weight: 400;
+  line-height: 1.35;
+  margin-top: 4px;
+}
+.notice {
+  background: #eff6ff;
+  color: #1e3a8a;
+  border: 1px solid rgba(37,99,235,.12);
+  border-radius: 20px;
+  padding: 14px;
+  margin-top: 14px;
+  line-height: 1.45;
+}
+.notice p {
+  margin: 0;
+}
+.muted {
+  color: var(--muted);
+}
+@media (max-width: 520px) {
+  .stat-grid { grid-template-columns: 1fr; }
+  #pmMotherhoodResults {
+    overflow-x: auto;
+  }
+  #pmMotherhoodResults table {
+    min-width: 680px;
+  }
+}
+@media print {
+  .menu-toggle,
+  .side-menu,
+  .side-menu-overlay,
+  .top-bar,
+  .cards-grid,
+  .hero-dashboard,
+  .maternity-info-card {
+    display: none !important;
+  }
+  body { background: white !important; }
+  .view { display: none !important; }
+  #maternityView { display: block !important; }
+  .app-shell { padding: 0 !important; }
+  .hero-box,
+  .stat,
+  #pmMotherhoodResults table {
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+}

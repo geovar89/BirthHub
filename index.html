@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <link rel="apple-touch-icon" href="icons/icon-192.svg" />
 
-  <link rel="stylesheet" href="styles.css?v=1.6.2" />
+  <link rel="stylesheet" href="styles.css?v=2.0.0" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
@@ -499,7 +499,6 @@
         <div id="videosList" class="videos-list"></div>
       </section>
 
-
       <section id="maternityView" class="view">
         <div class="top-bar">
           <button id="backHomeFromMaternity" class="ghost-btn" type="button">‹ Πίσω</button>
@@ -509,7 +508,7 @@
         <div class="section-title sticky-title">
           <div>
             <h2>Υπολογιστής Άδειας Μητρότητας</h2>
-            <p>Υπολογισμός κυοφορίας, λοχείας, ΔΥΠΑ, ισόχρονης και γονικής άδειας.</p>
+            <p>Πλήρες ημερολόγιο κυοφορίας, λοχείας, ΔΥΠΑ, γονικής και ισόχρονης άδειας.</p>
           </div>
         </div>
 
@@ -517,70 +516,99 @@
           <div class="form-grid">
             <label>
               <span>Πιθανή Ημερομηνία Τοκετού</span>
-              <input id="eddInput" type="date" required />
+              <input id="pmDue" type="date" required />
             </label>
 
-            <label>
+            <label class="checkbox-label">
+              <input id="pmUseActual" type="checkbox" />
+              <span>Έχω πραγματική ημερομηνία τοκετού</span>
+            </label>
+
+            <label id="pmActualWrap" style="display:none;">
               <span>Πραγματική Ημερομηνία Τοκετού</span>
-              <input id="actualBirthInput" type="date" />
+              <input id="pmActual" type="date" />
             </label>
 
             <label>
-              <span>Κανονική άδεια πριν το 9μηνο</span>
-              <select id="annualLeaveBeforeDypa">
-                <option value="0">Όχι</option>
-                <option value="5">5 ημέρες</option>
-                <option value="10">10 ημέρες</option>
-                <option value="15">15 ημέρες</option>
-                <option value="20">20 ημέρες</option>
-                <option value="25">25 ημέρες</option>
+              <span>Ετήσια κανονική άδεια πριν από την επόμενη φάση</span>
+              <input id="pmAnnualDays" type="number" min="0" step="1" value="0" />
+            </label>
+
+            <label class="checkbox-label">
+              <input id="pmIncludeDypa" type="checkbox" checked />
+              <span>Να υπολογιστεί το 9μηνο ΔΥΠΑ</span>
+            </label>
+
+            <label>
+              <span>Μειωμένο / Ισόχρονη άδεια</span>
+              <select id="pmChildcareUse">
+                <option value="none">Δεν θα υπολογιστεί</option>
+                <option value="eq-before-dypa">Ισόχρονη πριν το 9μηνο ΔΥΠΑ</option>
+                <option value="eq-after-dypa" selected>Ισόχρονη μετά το 9μηνο ΔΥΠΑ</option>
+                <option value="hours-after">Μειωμένο ωράριο μετά τις άδειες</option>
               </select>
             </label>
 
             <label>
-              <span>Ισόχρονη άδεια μειωμένου ωραρίου</span>
-              <select id="equalLeaveMonths">
-                <option value="0">Δεν θα υπολογιστεί</option>
-                <option value="3">3 μήνες</option>
-                <option value="3.5">3,5 μήνες</option>
-                <option value="4">4 μήνες</option>
+              <span>Μοτίβο μειωμένου ωραρίου</span>
+              <select id="pmChildcarePattern">
+                <option value="standard" selected>1 ώρα/ημέρα για 30 μήνες</option>
+                <option value="alternative">2 ώρες/ημέρα για 12 μήνες + 1 ώρα/ημέρα για 6 μήνες</option>
               </select>
             </label>
 
             <label>
               <span>Γονική άδεια</span>
-              <select id="parentalLeaveMonths">
-                <option value="0">Δεν θα υπολογιστεί</option>
-                <option value="1">1 μήνας</option>
-                <option value="2">2 μήνες</option>
-                <option value="3">3 μήνες</option>
-                <option value="4">4 μήνες</option>
+              <select id="pmParentalMode">
+                <option value="none">Δεν θα υπολογιστεί</option>
+                <option value="after-dypa-before-childcare">Μετά το ΔΥΠΑ, πριν την ισόχρονη/μειωμένο</option>
+                <option value="after-childcare">Μετά την ισόχρονη/μειωμένο</option>
               </select>
             </label>
-          </div>
 
-          <button id="calcMaternity" class="primary-btn" type="button">Υπολογισμός</button>
+            <label>
+              <span>Μήνες γονικής άδειας</span>
+              <input id="pmParentalMonths" type="number" min="0" max="4" step="0.5" value="4" />
+            </label>
+
+            <label>
+              <span>Εργάσιμη εβδομάδα</span>
+              <select id="pmWorkweek">
+                <option value="5" selected>5ήμερο</option>
+                <option value="6">6ήμερο</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Ώρες πλήρους ημερήσιου ωραρίου</span>
+              <input id="pmDailyHours" type="number" min="1" step="0.5" value="8" />
+            </label>
+
+            <label>
+              <span>Χειροκίνητη αφαίρεση ωρών/ημερών</span>
+              <input id="pmExtraNonWorking" type="number" min="0" step="1" value="0" />
+            </label>
+
+            <label class="checkbox-label">
+              <input id="pmExcludeFixedHolidays" type="checkbox" checked />
+              <span>Αφαίρεση βασικών σταθερών αργιών</span>
+            </label>
+          </div>
         </div>
 
-        <div id="maternityResults" class="maternity-results"></div>
+        <div id="pmMotherhoodResults" class="maternity-results"></div>
 
         <div class="maternity-info-card">
-          <h3>Τι υπολογίζει</h3>
-          <div class="maternity-info-grid">
-            <article><strong>Άδεια κυοφορίας</strong><p>Ξεκινά 56 ημέρες πριν την ΠΗΤ.</p></article>
-            <article><strong>Άδεια λοχείας</strong><p>Διαρκεί 63 ημέρες μετά τον τοκετό. Αν ο τοκετός γίνει νωρίτερα, οι αχρησιμοποίητες ημέρες κυοφορίας μεταφέρονται στη λοχεία.</p></article>
-            <article><strong>9μηνο ΔΥΠΑ</strong><p>Υπολογίζεται ενδεικτικά μετά τη λήξη λοχείας ή μετά από κανονική άδεια, αν δηλωθεί.</p></article>
-            <article><strong>Ισόχρονη / γονική</strong><p>Προστίθενται ως ενδεικτικές περίοδοι στο timeline για καλύτερο προγραμματισμό.</p></article>
-          </div>
+          <h3>Σημείωση</h3>
           <p class="legal-note">Ο υπολογισμός είναι βοηθητικός και δεν αποτελεί επίσημη εργατική ή payroll συμβουλή. Επιβεβαίωσε τις ημερομηνίες με HR/λογιστήριο.</p>
         </div>
       </section>
 
-    </main>
+</main>
   </div>
 
-  <script src="config.js?v=1.6.2"></script>
-  <script src="app.js?v=1.6.2"></script>
+  <script src="config.js?v=2.0.0"></script>
+  <script src="app.js?v=2.0.0"></script>
 
   <script>
     if ("serviceWorker" in navigator) {
