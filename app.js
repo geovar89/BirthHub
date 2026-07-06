@@ -2132,7 +2132,7 @@ function renderDashboard() {
 
 function renderDashboardPregnancyInfo() {
   try {
-    const lmpDate = new Date('2026-01-12T12:00:00');
+    const lmpDate = new Date('2026-01-12T00:00:00');
     const today = new Date();
 
     const diffDays = Math.max(
