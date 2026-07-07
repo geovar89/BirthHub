@@ -1,3 +1,11 @@
+const loginScreen = document.getElementById('loginScreen');
+const loginForm = document.getElementById('loginForm');
+const loginPin = document.getElementById('loginPin');
+const pinFields = document.getElementById('pinFields');
+const pinDigits = Array.from(document.querySelectorAll('.pin-digit'));
+const loginError = document.getElementById('loginError');
+const loginButton = document.getElementById('loginButton');
+const logoutButton = document.getElementById('logoutButton');
 const menuToggle = document.getElementById('menuToggle');
 const closeSideMenu = document.getElementById('closeSideMenu');
 const sideMenu = document.getElementById('sideMenu');
@@ -145,6 +153,7 @@ let shoppingItems = [];
 
 const VIDEO_PROGRESS_STORAGE_KEY = 'birthApp.videoProgress.v1';
 const YOUTUBE_VIDEOS = [{"id": "azFEJq6vn6g", "title": "25 Weeks Pregnant - What to Expect", "channel": "Diana In The Pink", "category": "Pregnancy week by week", "weekMin": 24, "weekMax": 26, "subtitles": "Auto-translate likely"}, {"id": "F00k_m7_lfw", "title": "24 Weeks Pregnant - What to Expect", "channel": "What To Expect", "category": "Pregnancy week by week", "weekMin": 23, "weekMax": 25, "subtitles": "Auto-translate likely"}, {"id": "BWLdj-2Xe58", "title": "27 Weeks Pregnant - What to Expect", "channel": "What To Expect", "category": "Pregnancy week by week", "weekMin": 26, "weekMax": 28, "subtitles": "Auto-translate likely"}, {"id": "EjnJWB9ZuzU", "title": "30 Weeks Pregnant - What to Expect", "channel": "What To Expect", "category": "Pregnancy week by week", "weekMin": 29, "weekMax": 31, "subtitles": "Auto-translate likely"}, {"id": "IaO8jfqQ9Uk", "title": "32 Weeks Pregnant - What to Expect", "channel": "What To Expect", "category": "Pregnancy week by week", "weekMin": 31, "weekMax": 33, "subtitles": "Auto-translate likely"}, {"id": "YBFvZoECv1M", "title": "Pregnancy: Weeks 25-28", "channel": "BabyCenter", "category": "Pregnancy week by week", "weekMin": 25, "weekMax": 28, "subtitles": "Auto-translate likely"}, {"id": "TF0DJXMP9YY", "title": "Pregnancy: Weeks 29-32", "channel": "BabyCenter", "category": "Pregnancy week by week", "weekMin": 29, "weekMax": 32, "subtitles": "Auto-translate likely"}, {"id": "KHzRsls5bbk", "title": "What to Pack in Your Hospital Bag", "channel": "Labor & Delivery nurse-led", "category": "Hospital Bag", "weekMin": 30, "weekMax": 40, "subtitles": "Auto-translate likely"}, {"id": "lLQk72acMig", "title": "Hospital Bag for Mom, Partner and Baby", "channel": "The Doctors Bjorkman", "category": "Hospital Bag", "weekMin": 30, "weekMax": 40, "subtitles": "Auto-translate likely"}, {"id": "-WesZIBPTi8", "title": "10 Things Your Labor Nurse Wants You to Pack", "channel": "Nurse Zabe", "category": "Hospital Bag", "weekMin": 30, "weekMax": 40, "subtitles": "Auto-translate likely"}, {"id": "hpgjwK_oQe0", "title": "Newborn Care: Pediatrician Guide to Week 1", "channel": "The Doctors Bjorkman", "category": "Newborn Care", "weekMin": 32, "weekMax": 42, "subtitles": "Auto-translate likely"}, {"id": "CXWzqbe1i9c", "title": "Guide To Taking Care Of a Newborn Baby", "channel": "Baby care guide", "category": "Newborn Care", "weekMin": 32, "weekMax": 42, "subtitles": "Auto-translate likely"}, {"id": "7yxd25nZMaE", "title": "Complete Guide to Bathing a Newborn Baby", "channel": "Baby care guide", "category": "Newborn Care", "weekMin": 32, "weekMax": 42, "subtitles": "Auto-translate likely"}, {"id": "8mfZK0l8RNg", "title": "How to Play With a Newborn", "channel": "Baby development", "category": "Newborn Care", "weekMin": 35, "weekMax": 42, "subtitles": "Auto-translate likely"}, {"id": "qYYTMun-S4I", "title": "Breastfeeding: Latch & Positioning", "channel": "EvergreenHealth", "category": "Breastfeeding", "weekMin": 28, "weekMax": 42, "subtitles": "Auto-translate likely"}, {"id": "su_0xl8HI6Q", "title": "Getting a Deeper Latch", "channel": "Breastfeeding support", "category": "Breastfeeding", "weekMin": 28, "weekMax": 42, "subtitles": "Auto-translate likely"}, {"id": "JjKztwxkT7g", "title": "Best Position to Get a Deep and Correct Latch", "channel": "Breastfeeding education", "category": "Breastfeeding", "weekMin": 28, "weekMax": 42, "subtitles": "Auto-translate likely"}, {"id": "8kTKnZOmJXU", "title": "Breastfeeding How To", "channel": "NYU Langone", "category": "Breastfeeding", "weekMin": 28, "weekMax": 42, "subtitles": "Auto-translate likely"}, {"id": "wVRLDJcVKxk", "title": "14 Life-Changing Tips For First Time Moms & Dads", "channel": "New parent tips", "category": "Dad Academy", "weekMin": 30, "weekMax": 42, "subtitles": "Auto-translate likely"}, {"id": "GdP-1bwuu94", "title": "Realistic Day in the Life With a Newborn Baby", "channel": "Newborn life", "category": "Dad Academy", "weekMin": 34, "weekMax": 42, "subtitles": "Auto-translate likely"}, {"id": "YZbgcHz5TC8", "title": "How To Dress a Newborn", "channel": "Baby Care Basics", "category": "Baby Shopping", "weekMin": 30, "weekMax": 42, "subtitles": "Auto-translate likely"}];
+const AUTH_SESSION_STORAGE_KEY = 'birthApp.authSession.v1';
 const WEIGHT_STORAGE_KEY = 'birthApp.weightEntries.v1';
 const APPOINTMENTS_STORAGE_KEY = 'birthApp.appointments.v1';
 const WEIGHT_PAGE_SIZE = 10;
@@ -407,6 +416,8 @@ const WEIGHT_IMPORT_FLAG_KEY = 'birthApp.weightImportDone.v1';
 
 
 
+loginForm?.addEventListener('submit', handleLogin);
+logoutButton?.addEventListener('click', handleLogout);
 menuToggle?.addEventListener('click', openSideMenu);
 closeSideMenu?.addEventListener('click', closeMenu);
 sideMenuOverlay?.addEventListener('click', closeMenu);
@@ -981,6 +992,155 @@ function renderAttachment(url, index) {
 
 
 
+
+
+
+function setLoginLoading(isLoading) {
+  if (loginButton) {
+    loginButton.disabled = isLoading;
+    loginButton.classList.toggle('loading', isLoading);
+    loginButton.innerHTML = isLoading
+      ? '<span class="login-button-spinner"></span> Έλεγχος...'
+      : 'Είσοδος';
+  }
+
+  pinDigits.forEach(input => input.disabled = isLoading);
+
+  if (!isLoading && document.body.classList.contains('auth-locked')) {
+    setTimeout(() => pinDigits[0]?.focus(), 80);
+  }
+}
+
+function shakeLoginCard() {
+  const card = document.querySelector('.login-card');
+  if (!card) return;
+  card.classList.remove('shake');
+  void card.offsetWidth;
+  card.classList.add('shake');
+}
+
+function getPinValue() {
+  return pinDigits.map(input => input.value).join('');
+}
+
+function syncPinValue() {
+  if (loginPin) loginPin.value = getPinValue();
+}
+
+function clearPinDigits() {
+  pinDigits.forEach(input => input.value = '');
+  syncPinValue();
+  if (!loginButton?.disabled) pinDigits[0]?.focus();
+}
+
+function initPinFields() {
+  if (!pinDigits.length) return;
+
+  pinDigits.forEach((input, index) => {
+    input.addEventListener('input', () => {
+      input.value = input.value.replace(/\D/g, '').slice(0, 1);
+      syncPinValue();
+
+      if (input.value && index < pinDigits.length - 1) {
+        pinDigits[index + 1].focus();
+      }
+
+      if (getPinValue().length === pinDigits.length) {
+        loginForm?.requestSubmit();
+      }
+    });
+
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Backspace' && !input.value && index > 0) {
+        pinDigits[index - 1].focus();
+        pinDigits[index - 1].value = '';
+        syncPinValue();
+      }
+
+      if (event.key === 'ArrowLeft' && index > 0) pinDigits[index - 1].focus();
+      if (event.key === 'ArrowRight' && index < pinDigits.length - 1) pinDigits[index + 1].focus();
+    });
+
+    input.addEventListener('paste', event => {
+      event.preventDefault();
+      const pasted = (event.clipboardData || window.clipboardData)
+        .getData('text')
+        .replace(/\D/g, '')
+        .slice(0, pinDigits.length);
+
+      pasted.split('').forEach((digit, digitIndex) => {
+        if (pinDigits[digitIndex]) pinDigits[digitIndex].value = digit;
+      });
+
+      syncPinValue();
+      pinDigits[Math.min(pasted.length, pinDigits.length - 1)]?.focus();
+
+      if (getPinValue().length === pinDigits.length) {
+        loginForm?.requestSubmit();
+      }
+    });
+  });
+}
+
+
+function isAuthEnabled(){return window.BIRTH_APP_CONFIG?.AUTH_ENABLED !== false;}
+function getAuthSession(){try{return JSON.parse(localStorage.getItem(AUTH_SESSION_STORAGE_KEY))||null}catch{return null}}
+function saveAuthSession(s){localStorage.setItem(AUTH_SESSION_STORAGE_KEY,JSON.stringify(s))}
+function clearAuthSession(){localStorage.removeItem(AUTH_SESSION_STORAGE_KEY)}
+function getAuthToken(){return getAuthSession()?.token || ''}
+function setAppLocked(locked){
+  loginScreen?.classList.toggle('active', locked);
+  document.body.classList.toggle('auth-locked', locked);
+}
+async function initAuth(){
+  if(!isAuthEnabled()){setAppLocked(false);return}
+  const session=getAuthSession();
+  if(!session?.token){setAppLocked(true);setTimeout(()=>pinDigits[0]?.focus(),150);return}
+  try{
+    const r=await authVerify(session.token);
+    if(r.success){setAppLocked(false)}else{clearAuthSession();setAppLocked(true)}
+  }catch(e){console.error(e);clearAuthSession();setAppLocked(true)}
+}
+async function handleLogin(e) {
+  e.preventDefault();
+
+  const pin = typeof getPinValue === 'function' ? getPinValue() : loginPin.value.trim();
+  if (!pin || pin.length < 4) return;
+
+  loginError.textContent = '';
+  setLoginLoading(true);
+
+  try {
+    const r = await authLogin(pin);
+
+    if (!r.success || !r.token) {
+      loginError.textContent = 'Λάθος PIN. Προσπάθησε ξανά.';
+      shakeLoginCard();
+      clearPinDigits();
+      return;
+    }
+
+    saveAuthSession({
+      token: r.token,
+      expiresAt: r.expiresAt || '',
+      createdAt: new Date().toISOString()
+    });
+
+    clearPinDigits();
+    setAppLocked(false);
+  } catch (err) {
+    console.error(err);
+    loginError.textContent = 'Δεν μπόρεσα να κάνω έλεγχο PIN.';
+    shakeLoginCard();
+    clearPinDigits();
+  } finally {
+    setLoginLoading(false);
+  }
+}
+async function authLogin(pin){return apiPost({action:'login',pin},{skipAuth:true})}
+async function authVerify(token){return apiPost({action:'verifyToken',token},{skipAuth:true})}
+function handleLogout(){clearAuthSession(); if(typeof closeMenu==='function')closeMenu(); setAppLocked(true); setTimeout(()=>loginPin?.focus(),150)}
+
 function showAppLoader(text = 'Φόρτωση...') {
   const loader = document.getElementById('appLoader');
   const label = document.getElementById('appLoaderText');
@@ -1022,7 +1182,8 @@ function getWeightSheetName() {
 async function apiGetSheet(sheetName) {
   const apiUrl = getBirthHubApiUrl();
   if (!apiUrl) throw new Error('BirthHub API URL missing.');
-  const url = `${apiUrl}?sheet=${encodeURIComponent(sheetName)}&_=${Date.now()}`;
+  const tokenParam = getAuthToken() ? `&token=${encodeURIComponent(getAuthToken())}` : '';
+  const url = `${apiUrl}?sheet=${encodeURIComponent(sheetName)}${tokenParam}&_=${Date.now()}`;
   const response = await fetch(url, { cache: 'no-store' });
   if (!response.ok) throw new Error(`GET ${sheetName} HTTP ${response.status}`);
   const data = await response.json();
@@ -1030,13 +1191,13 @@ async function apiGetSheet(sheetName) {
   return Array.isArray(data) ? data : (data.data || data.rows || []);
 }
 
-async function apiPost(payload) {
+async function apiPost(payload, options = {}) {
   const apiUrl = getBirthHubApiUrl();
   if (!apiUrl) throw new Error('BirthHub API URL missing.');
   const response = await fetch(apiUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(options.skipAuth ? payload : { ...payload, token: getAuthToken() })
   });
   if (!response.ok) throw new Error(`POST HTTP ${response.status}`);
   const data = await response.json();
@@ -2132,7 +2293,7 @@ function renderDashboard() {
 
 function renderDashboardPregnancyInfo() {
   try {
-    const lmpDate = new Date('2026-01-12T00:00:00');
+    const lmpDate = new Date('2026-01-12T12:00:00');
     const today = new Date();
 
     const diffDays = Math.max(
@@ -3209,3 +3370,6 @@ window.toggleAppointmentStatus = typeof toggleAppointmentStatus !== 'undefined' 
     render();
 }
 )();
+
+initPinFields();
+initAuth();

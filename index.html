@@ -12,11 +12,32 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <link rel="apple-touch-icon" href="icons/icon-192.svg" />
 
-  <link rel="stylesheet" href="styles.css?v=2.4.0" />
+  <link rel="stylesheet" href="styles.css?v=2.5.2" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
 <body>
+
+  <section id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <div class="login-badge">👶🩵</div>
+      <p class="login-kicker">Birth Hub</p>
+      <h1>Καλώς ήρθατε</h1>
+      <p class="login-subtitle">Βάλε το PIN για να ανοίξει το οικογενειακό hub.</p>
+      <form id="loginForm" class="login-form">
+        <div id="pinFields" class="pin-fields">
+          <input class="pin-digit" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 1" required />
+          <input class="pin-digit" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 2" required />
+          <input class="pin-digit" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 3" required />
+          <input class="pin-digit" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" aria-label="PIN digit 4" required />
+        </div>
+        <input id="loginPin" type="hidden" required />
+        <button id="loginButton" type="submit">Είσοδος</button>
+      </form>
+      <p id="loginError" class="login-error"></p>
+    </div>
+  </section>
+
 
   <div id="appLoader" class="app-loader" aria-live="polite" aria-hidden="true">
     <div class="app-loader-card">
@@ -45,7 +66,8 @@
       <button class="side-menu-item" type="button" data-view="shopping"><span>🛍️</span><strong>Shopping List</strong></button>
       <button class="side-menu-item" type="button" data-view="videos"><span>▶️</span><strong>Video Library</strong></button>
       <button class="side-menu-item" type="button" data-view="maternity"><span>👶</span><strong>Άδεια Μητρότητας</strong></button>
-</nav>
+      <button id="logoutButton" class="side-menu-item logout-item" type="button"><span>🔒</span><strong>Αποσύνδεση</strong></button>
+    </nav>
   </aside>
 
   <div class="app-shell">
@@ -98,7 +120,7 @@
 
         <div class="section-title">
           <h2>Εφαρμογές</h2>
-          <span>8 διαθέσιμες</span>
+          <span>7 διαθέσιμες</span>
         </div>
 
         <div class="cards-grid">
@@ -635,8 +657,8 @@
 </main>
   </div>
 
-  <script src="config.js?v=2.4.0"></script>
-  <script src="app.js?v=2.4.0"></script>
+  <script src="config.js?v=2.5.2"></script>
+  <script src="app.js?v=2.5.2"></script>
 
   <script>
     if ("serviceWorker" in navigator) {

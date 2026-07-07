@@ -38,3 +38,12 @@ https://script.google.com/macros/s/AKfycbxwT3q6lRpsO5EFg3RVNPp2ujIasaT_P9jVRczPl
 - Nutrition
 - Videos
 - Settings
+
+
+## PIN Login
+Στο Apps Script → Project Settings → Script Properties πρόσθεσε:
+
+- `APP_PIN` = το PIN σου, π.χ. `1234`
+- `AUTH_SECRET` = ένα μεγάλο τυχαίο string
+
+Μετά κάνε νέο Deploy version.

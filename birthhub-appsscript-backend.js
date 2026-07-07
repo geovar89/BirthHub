@@ -15,6 +15,7 @@
 
 const DEFAULT_SPREADSHEET_ID = '1JAYPYsxKZsPfM3i8nbw-DVleQMWRsil8st7-nAcb6dw';
 const DEFAULT_OPENAI_MODEL = 'gpt-5.5';
+const AUTH_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 const ALLOWED_SHEETS = new Set([
   'Exams',
@@ -31,6 +32,9 @@ const ALLOWED_SHEETS = new Set([
 function doGet(e) {
   try {
     const sheetName = e.parameter.sheet || e.parameter.app;
+
+    const auth = verifyRequestToken(e.parameter.token);
+    if (!auth.success) return jsonOutput(auth);
 
     if (!sheetName) {
       return jsonOutput({
@@ -52,6 +56,12 @@ function doPost(e) {
   try {
     const body = parseBody(e);
     const action = body.action;
+
+    if (action === 'login') return handleLogin(body);
+    if (action === 'verifyToken') return jsonOutput(verifyRequestToken(body.token));
+
+    const auth = verifyRequestToken(body.token);
+    if (!auth.success) return jsonOutput(auth);
 
     if (action === 'mamaChat') {
       return handleMamaChat(body);
@@ -209,6 +219,37 @@ function normalizeCellValue(value) {
   }
 
   return value;
+}
+
+
+function handleLogin(body){
+  const pin=String(body.pin||'').trim();
+  const props=PropertiesService.getScriptProperties();
+  const expected=String(props.getProperty('APP_PIN')||'').trim();
+  if(!expected)return jsonOutput({success:false,error:'APP_PIN script property missing'});
+  if(pin!==expected)return jsonOutput({success:false,error:'invalid pin'});
+  const now=Math.floor(Date.now()/1000);
+  const expiresAt=now+AUTH_TOKEN_TTL_SECONDS;
+  const token=createAuthToken(expiresAt);
+  return jsonOutput({success:true,token,expiresAt});
+}
+function verifyRequestToken(token){
+  if(!token)return {success:false,error:'not authenticated'};
+  const parts=String(token).split('.');
+  if(parts.length!==3)return {success:false,error:'invalid token'};
+  const payload=parts[0], expiresAt=Number(parts[1]), sig=parts[2];
+  if(!expiresAt || Math.floor(Date.now()/1000)>expiresAt)return {success:false,error:'token expired'};
+  if(sig!==signAuthPayload(`${payload}.${expiresAt}`))return {success:false,error:'invalid token signature'};
+  return {success:true};
+}
+function createAuthToken(expiresAt){
+  const payload=Utilities.base64EncodeWebSafe(JSON.stringify({app:'BirthHub',iat:Math.floor(Date.now()/1000)}));
+  const toSign=`${payload}.${expiresAt}`;
+  return `${toSign}.${signAuthPayload(toSign)}`;
+}
+function signAuthPayload(value){
+  const secret=PropertiesService.getScriptProperties().getProperty('AUTH_SECRET')||'CHANGE_ME_BIRTHHUB_AUTH_SECRET';
+  return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(value,secret));
 }
 
 /**
